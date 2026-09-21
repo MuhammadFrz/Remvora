@@ -69,6 +69,36 @@ public sealed class DatabaseMigrator
             CREATE INDEX IF NOT EXISTS idx_audit_events_timestamp ON audit_events(timestamp);
             CREATE INDEX IF NOT EXISTS idx_audit_events_app_id ON audit_events(application_id);
             CREATE INDEX IF NOT EXISTS idx_audit_events_trans_id ON audit_events(transaction_id);
+
+            CREATE TABLE IF NOT EXISTS transactions (
+                id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL,
+                application_id TEXT NOT NULL,
+                operation_type TEXT NOT NULL,
+                phase INTEGER NOT NULL,
+                started_at TEXT NOT NULL,
+                completed_at TEXT,
+                restore_point_sequence INTEGER,
+                journal_path TEXT,
+                summary_notes TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_transactions_app_id ON transactions(application_id);
+            CREATE INDEX IF NOT EXISTS idx_transactions_started_at ON transactions(started_at);
+
+            CREATE TABLE IF NOT EXISTS transaction_items (
+                id TEXT PRIMARY KEY,
+                transaction_id TEXT NOT NULL,
+                item_type INTEGER NOT NULL,
+                target_location TEXT NOT NULL,
+                original_state TEXT,
+                backup_path TEXT,
+                result INTEGER NOT NULL,
+                is_reversible INTEGER NOT NULL,
+                error_message TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_transaction_items_trans_id ON transaction_items(transaction_id);
             """;
 
         connection.Execute(createApplicationsTableSql);

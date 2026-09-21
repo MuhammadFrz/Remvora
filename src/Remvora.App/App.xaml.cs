@@ -89,6 +89,12 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<Remvora.Application.Uninstall.IUninstallStrategy, Remvora.Windows.Uninstall.RegistryCommandStrategy>();
         services.AddSingleton<Remvora.Application.Uninstall.IUninstallStrategy, Remvora.Windows.Uninstall.PackageUninstallStrategy>();
 
+        // Transactions & Rollback
+        services.AddSingleton<Remvora.Application.Transactions.ITransactionRepository, SqliteTransactionRepository>();
+        services.AddSingleton<Remvora.Application.Transactions.ITransactionBackupService, Remvora.Windows.Transactions.WindowsTransactionBackupService>();
+        services.AddSingleton<Remvora.Application.Transactions.ITransactionExecutor, Remvora.Application.Transactions.TransactionExecutor>();
+        services.AddSingleton<Remvora.Application.Transactions.ITransactionRollbackService, Remvora.Application.Transactions.TransactionRollbackService>();
+
         // Persistence
         services.AddSingleton<IDbConnectionFactory, SqliteConnectionFactory>();
         services.AddSingleton<DatabaseMigrator>();

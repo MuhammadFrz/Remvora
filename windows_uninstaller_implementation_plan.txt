@@ -1,0 +1,2363 @@
+WINDOWS UNINSTALLER / CLEANUP UTILITY
+FULL IMPLEMENTATION PLAN
+Version: 1.1
+Date: 2026-09-21
+Scope: Native Windows desktop application inspired by the feature class of Revo Uninstaller Pro / IObit Uninstaller, without Browser Extensions Manager, Software Updater, Software Relocator, Command-Line Interface, Quarantine Instead of Immediate Deletion, or Portable Mode.
+
+======================================================================
+0. EXECUTIVE SUMMARY
+======================================================================
+
+Goal
+----
+Build a production-grade Windows application that can discover installed software, perform normal/forced/complete uninstalls, find leftovers, manage startup items/services/tasks, clean junk and privacy history, securely shred selected files, inspect running applications, monitor installations, and provide recovery/audit facilities.
+
+The product should feel like a modern Windows utility rather than a clone of a legacy desktop application.
+
+Core product promise
+--------------------
+1. Explain what will be changed before changing it.
+2. Prefer the software vendor's own uninstaller when available.
+3. Use evidence-based leftover detection rather than name-only matching.
+4. Never silently treat ambiguous data as safe to delete.
+5. Keep normal UI operation unelevated; elevate only for privileged work.
+6. Record every destructive operation in an audit log.
+7. Make recovery possible through transaction snapshots and Windows System Restore where available.
+8. Keep the uninstaller engine deterministic and testable independently from the UI.
+
+In-scope feature groups
+-----------------------
+A. Installed Apps
+B. Complete Uninstall
+C. Advanced / Forced Uninstall
+D. Standalone Leftover Scanner
+E. Installation Monitor
+F. Installation Logs / Local uninstall knowledge database
+G. Batch / Multiple Uninstall
+H. Windows Apps Manager
+I. Startup Manager
+J. Junk / Temporary Files Cleaner
+K. Privacy / History Cleaner
+L. Secure File Shredder
+M. Bloatware / Unwanted Software Detector
+N. Process / Running-App Awareness
+O. Backup, Restore Point, and Undo Transactions
+P. Cleanup Preview / Dry Run
+Q. Digital Signature / Trust Information
+R. Activity / Audit Logs
+S. Windows Tools Hub
+T. Hunter Mode
+U. Modern Windows UI
+
+Explicitly out of scope
+-----------------------
+1. Browser Extensions Manager
+2. Software Updater
+3. Software Relocator
+4. Command-Line Interface
+5. Quarantine instead of immediate deletion
+6. Portable Mode
+
+OFFICIAL PRODUCT IDENTITY
+------------------------
+Product name:
+- Remvora
+
+Product positioning:
+- Native Windows application uninstaller and cleanup utility.
+- Remvora is the official project/brand identity for this implementation plan.
+
+Canonical executable / project naming:
+- Remvora.exe — main UI/application executable
+- Remvora.ElevatedWorker.exe — privileged worker executable
+- Remvora.Core — domain/core library
+- Remvora.Application — application/use-case layer
+- Remvora.Infrastructure — persistence/configuration/logging layer
+- Remvora.Windows — Windows/Win32 integration layer
+- Remvora.Contracts — IPC contracts and shared DTOs
+
+Canonical local-data roots:
+- %LocalAppData%\Remvora\ — user-scoped preferences, logs, and UI data
+- %ProgramData%\Remvora\ — machine-wide data only when genuinely required
+
+Namespace convention:
+- Remvora.*
+
+Branding/legal note:
+- Do not invent a legal company name, trademark registration, or publisher identity.
+- Treat Remvora as the product/brand name; installer publisher metadata remains configurable until legal ownership details are supplied.
+
+FINALIZED TECHNICAL STACK
+-------------------------
+The following stack is LOCKED for the initial production implementation unless a documented,
+measured compatibility problem requires a change. Do not switch frameworks because another
+framework is easier for a particular component.
+
+Language:
+- C# 14 / modern C# features supported by the selected .NET 10 SDK.
+- Nullable reference types enabled.
+- Implicit usings enabled where appropriate.
+- Treat warnings as errors in core/domain/application projects where practical.
+
+Runtime:
+- .NET 10 LTS.
+- Keep the application on the latest supported .NET 10 servicing patch.
+- Do not downgrade to .NET Framework or .NET 8 unless a specific Windows dependency forces it.
+
+UI:
+- WinUI 3.
+- Windows App SDK 2.5.1 Stable at project kickoff.
+- XAML + compiled bindings where practical.
+- CommunityToolkit.Mvvm for MVVM primitives.
+- Fluent/Windows-native visual language; do not use a web UI shell.
+
+Windows platform:
+- Windows App SDK 2.5.1 Stable.
+- Windows SDK 10.0.28000.x family, selecting the latest compatible servicing build at implementation time.
+- Primary product target: Windows 11 x64.
+- ARM64 is not a primary release target; design architecture so it can be added later without rewriting domain/application code.
+- Minimum supported Windows 11 release/build must be pinned during repository bootstrap after validating required APIs against Microsoft's support matrix. Never silently expand support to older Windows versions.
+
+Architecture:
+- Layered architecture + MVVM + dependency inversion.
+- Domain/application code must be testable without WinUI or Windows elevation.
+- UI process remains unelevated.
+- Privileged operations execute in a separate elevated worker process only when required.
+- Typed named-pipe IPC between UI and worker.
+
+Persistence:
+- SQLite.
+- Microsoft.Data.Sqlite.
+- Dapper for query/data-access code where a lightweight mapper is useful.
+- Database schema versioning/migrations are mandatory.
+
+Windows/native interop:
+- Microsoft.Windows.CsWin32 is the default mechanism for Win32 API access.
+- Prefer CsWin32-generated, SDK-backed, type-safe wrappers over handwritten P/Invoke.
+- Use direct LibraryImport only for narrowly scoped cases where CsWin32 is not practical or where a generated wrapper would be materially worse.
+- Do not use legacy hand-written DllImport declarations unless there is a documented reason.
+- Prefer documented/public Windows APIs. Undocumented internals require a documented fallback, isolated adapter, tests, and explicit approval.
+
+Services / IPC:
+- Named pipes for local UI-to-worker communication.
+- Explicit request/response contracts with correlation IDs, timeouts, cancellation, versioning, and authorization checks.
+- Never expose an arbitrary command/path/registry-string execution protocol.
+
+Logging:
+- Microsoft.Extensions.Logging.
+- Structured local logs.
+- Separate operational logs from user-visible audit history.
+- Never log secrets or unnecessary sensitive file contents.
+
+Testing:
+- xUnit.
+- Unit tests for domain/application logic.
+- Windows integration tests against controlled fixtures.
+- Destructive tests run only in disposable Windows VMs/snapshots.
+
+Build/tooling:
+- Visual Studio 2026 with the Windows/WinUI workload.
+- dotnet CLI for restore/build/test/publish.
+- Git.
+- CI must build Release x64 and execute the non-destructive test suite on every change.
+
+Installer/distribution:
+- Traditional signed installer using WiX Toolset for the initial consumer distribution path.
+- The application itself may use WinUI 3 packaged or unpackaged deployment internally during development, but production packaging must be chosen and validated explicitly.
+- Prefer a conventional installed application experience suitable for a system utility.
+- Code-sign shipped executables/installers before release.
+
+Performance:
+- All long-running scans are asynchronous, cancelable, incremental, and bounded.
+- Never block the UI thread on filesystem, registry, service, task, MSI, or package enumeration.
+- Use UI virtualization and incremental result loading.
+- Use bounded parallelism for read-only scans; never parallelize destructive operations merely for speed.
+- Profile Release builds before adding native C++ or other complexity.
+- Optimize based on measured bottlenecks rather than assumptions.
+
+Native C++ policy:
+- Do not add a C++/CLI or native C++ core during the first implementation.
+- Introduce native C++ only after profiling demonstrates a material performance, API, or compatibility requirement that cannot be solved cleanly in C# + Windows SDK/CsWin32.
+- If introduced later, isolate it behind a small C ABI or COM-style boundary and keep the domain/application layers language-agnostic.
+
+NativeAOT policy:
+- Do not make NativeAOT a first-phase requirement for the WinUI application.
+- Consider it only after the application is functionally complete and compatibility-tested, because WinUI/Windows App SDK/native interop/deployment constraints must be validated before adopting it.
+
+Current platform verification
+-----------------------------
+At project kickoff, re-check the exact package/tool versions and update this section only if
+Microsoft has superseded them with a newer supported stable release. As of 2026-09-21:
+- Microsoft's guidance recommends WinUI 3 with Windows App SDK for new native Windows desktop apps.
+- Windows App SDK 2.5.1 is the current Stable release, released 2026-09-16.
+- .NET 10 is LTS and supported through 2028-11-15.
+- Windows SDK 10.0.28000.x is the current Windows 11 SDK family listed by Microsoft.
+
+Primary Microsoft references used for the stack:
+- https://learn.microsoft.com/en-us/windows/apps/get-started/
+- https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/
+- https://learn.microsoft.com/windows/apps/windows-app-sdk/experimental-channel
+- https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/release-notes/windows-app-sdk-2-0
+- https://learn.microsoft.com/dotnet/core/releases-and-support
+- https://learn.microsoft.com/en-us/windows/apps/develop/interop/call-win32-apis
+- https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/
+- https://learn.microsoft.com/en-us/windows/apps/windows-sdk/
+
+======================================================================
+1. PRODUCT REQUIREMENTS
+======================================================================
+
+1.1 Installed Apps screen
+-------------------------
+Display one canonical application model regardless of discovery source.
+
+Columns / fields:
+- Display name
+- Publisher
+- Version
+- Install date
+- Estimated size
+- Calculated size
+- Install location
+- Installer type
+- Architecture
+- Per-user / per-machine scope
+- Package family name when packaged
+- Product code / package identity where applicable
+- Uninstall availability
+- Quiet uninstall availability
+- Last-used estimate when available
+- Digital signature status of primary executable
+- Running status
+- Startup/service/task presence
+
+User interactions:
+- Search
+- Sort
+- Filter
+- Multi-select
+- Details pane
+- Uninstall
+- Advanced uninstall
+- Open install location
+- Open registry/uninstall metadata
+- Copy details
+- Refresh
+
+Important design choice:
+Do not treat the Windows "estimated size" value as authoritative. Show it as installer-reported size and separately calculate disk usage when feasible.
+
+1.2 Discovery sources
+---------------------
+The Installed Apps inventory should aggregate and deduplicate from:
+
+A. Windows uninstall registry entries
+- HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall
+- HKLM\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall
+- HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall
+- Relevant 32-bit/64-bit registry views
+
+B. Windows Installer / MSI enumeration
+Use MSI APIs for installed products so MSI metadata can be correlated with registry entries.
+
+C. Packaged / Store apps
+Use Windows.Management.Deployment.PackageManager APIs to discover packages for the current user and, when elevated and appropriate, other users.
+
+D. Optional supplementary sources
+Only add sources that improve detection without creating duplicate/confusing records. Keep all sources tagged so the UI can explain where a record came from.
+
+1.3 Canonical identity and deduplication
+----------------------------------------
+Each application gets:
+- Internal ApplicationId: stable GUID generated by the app
+- External identities: MSI ProductCode, UpgradeCode if available, package family name, uninstall registry key path, executable fingerprint, etc.
+
+Deduplication priority:
+1. Exact MSI product code
+2. Exact package identity
+3. Exact uninstall registry identity
+4. Strong combination of publisher + normalized name + version + location
+5. Weak heuristic merge only with explicit confidence score
+
+Never merge two records purely because their display names match.
+
+======================================================================
+2. TARGET ARCHITECTURE
+======================================================================
+
+2.1 Process model
+-----------------
+Main process:
+- Unelevated UI
+- WinUI 3
+- Reads safe metadata directly
+- Requests privileged operations from Worker
+
+Elevated worker:
+- Separate executable
+- Runs only when needed
+- Requested with UAC
+- Performs privileged registry/file/service/task/package operations
+- Never accepts arbitrary commands without validation
+- Does not contain UI logic
+- Returns structured results over named pipe IPC
+
+Optional future process:
+- A tiny scheduler/helper process only if later needed for delayed cleanup after reboot. Do not add it in v1 unless tests show it is required.
+
+2.2 Layered solution
+--------------------
+Suggested solution:
+
+Remvora.sln
+  src/
+    Remvora.App/                 WinUI 3 UI project
+    Remvora.Core/                Domain models, policies, interfaces
+    Remvora.Application/         Use cases / orchestration / workflows
+    Remvora.Infrastructure/      SQLite, repositories, logging, configuration
+    Remvora.Windows/             Win32/WinRT interop adapters
+    Remvora.Elevation/           Privileged worker executable
+    Remvora.Contracts/           IPC contracts / DTOs / enums
+  tests/
+    Remvora.Core.Tests/
+    Remvora.Application.Tests/
+    Remvora.Infrastructure.Tests/
+    Remvora.Windows.Tests/
+    Remvora.Integration.Tests/
+    Remvora.Elevation.Tests/
+  tools/
+    TestApps/                        Purpose-built disposable test applications
+    FixtureGenerator/
+  docs/
+    architecture.md
+    safety-model.md
+    scanner-rules.md
+    threat-model.md
+
+2.3 Design patterns
+-------------------
+Use:
+- MVVM for UI
+- Dependency injection
+- Ports/adapters around Windows APIs
+- Immutable request/response DTOs where practical
+- Result types instead of exception-driven control flow for expected OS failures
+- Explicit transaction objects for destructive operations
+- Policy engine for deciding whether an item is safe/unsafe/ambiguous
+- Strategy pattern for installer types
+- Composite scanner for leftover detection
+
+Do not allow WinUI view models to directly call RegistryKey, ServiceController, Task Scheduler COM, or P/Invoke code.
+
+======================================================================
+3. PRIVILEGE AND SECURITY MODEL
+======================================================================
+
+3.1 Principle
+-------------
+The UI should run with the user's normal token. High-integrity privileges are acquired only when a feature genuinely requires them.
+
+Final privilege architecture (LOCKED):
+- `Remvora.App` runs unelevated.
+- `Remvora.Elevation` is a separate executable.
+- UAC elevation occurs only when a planned operation contains privileged steps.
+- The UI sends typed requests over a named pipe.
+- The elevated worker authenticates the caller, validates the request again, applies protected-target rules, executes only supported operations, and returns structured results.
+- The worker must not accept arbitrary command strings, arbitrary registry scripts, or arbitrary delete paths from the UI.
+
+3.2 Elevation flow
+------------------
+1. UI determines that the requested operation needs admin privileges.
+2. UI starts Remvora.ElevatedWorker.exe with runas/UAC.
+3. Worker creates a named pipe server with a restrictive security descriptor.
+4. UI connects using a nonce-bound authenticated session.
+5. UI sends one structured operation request.
+6. Worker validates the request against an allow-list of operation types.
+7. Worker executes the operation.
+8. Worker returns structured progress/results.
+9. Worker shuts down when no longer needed, unless a short-lived session is batching operations.
+
+3.3 Never trust IPC input
+-------------------------
+The worker must validate:
+- Paths
+- Registry hives/paths
+- Service names
+- Task paths
+- MSI product codes
+- Package identity
+- Operation type
+- Item IDs
+- Requested file actions
+
+Do not expose a generic "run arbitrary command" IPC method.
+
+3.4 Path safety
+---------------
+Canonicalize paths before destructive work.
+Reject:
+- Empty paths
+- Relative paths
+- Paths with unresolved traversal
+- Device paths unless explicitly supported
+- Critical OS locations
+- The application's own installation directory during self-uninstall unless a controlled self-delete workflow exists
+
+Use a protected-path policy list and a higher-risk list.
+
+Protected examples:
+- C:\\Windows
+- C:\\Windows\\System32
+- C:\\Windows\\WinSxS
+- C:\\ProgramData\\Microsoft\\Windows
+- Boot/system volumes and critical bootloader paths
+- Registry roots and branches known to be system-critical
+
+Protection should be rule-based and explainable, not only string-prefix based.
+
+3.5 Registry safety
+-------------------
+Before deleting any registry value/key:
+- Verify the exact hive/view
+- Record original value/type and parent context
+- Verify it belongs to the selected application transaction
+- Check protected path rules
+
+Do not bulk-search the entire registry and delete every value containing the application name.
+
+======================================================================
+4. DOMAIN MODEL
+======================================================================
+
+Core entities
+-------------
+ApplicationRecord
+- Id
+- Name
+- Publisher
+- Version
+- InstallDate
+- InstallLocation
+- EstimatedSizeBytes
+- CalculatedSizeBytes
+- Architecture
+- Scope
+- InstallerType
+- ProductCode
+- PackageFamilyName
+- UninstallCommand
+- QuietUninstallCommand
+- ModifyCommand
+- SourceFlags
+- SignatureStatus
+- RunningStatus
+- DetectionConfidence
+- MetadataJson
+
+InstallObservation
+- ObservationId
+- ApplicationId
+- Timestamp
+- Source
+- EntityType
+- Identity
+- Path/Registry/Service/Task identifier
+- OperationType
+- DetailsJson
+
+CleanupCandidate
+- CandidateId
+- ApplicationId
+- Kind
+- Identifier
+- ParentIdentifier
+- ReasonCodes
+- ConfidenceScore
+- RiskLevel
+- DefaultSelected
+- SizeBytes
+- Protected
+- Notes
+
+OperationTransaction
+- TransactionId
+- StartedAt
+- CompletedAt
+- OperationType
+- ApplicationId
+- Status
+- RestorePointSequence if created
+- JournalPath
+- SummaryJson
+
+TransactionItem
+- TransactionId
+- ItemType
+- OriginalLocation
+- BackupLocation or OriginalState
+- NewState
+- Result
+
+StartupEntry
+- Id
+- Name
+- Command
+- LocationType
+- User/SID
+- Publisher
+- ExecutablePath
+- SignatureStatus
+- Enabled
+
+ServiceEntry
+- ServiceName
+- DisplayName
+- StartType
+- State
+- BinaryPath
+- Account
+- Publisher
+- SignatureStatus
+
+ScheduledTaskEntry
+- TaskPath
+- Name
+- Author
+- Actions
+- Triggers
+- RunAs
+- State
+- Publisher
+- SignatureStatus
+
+AuditEvent
+- Timestamp
+- Severity
+- Category
+- Action
+- Target
+- Result
+- ErrorCode
+- Details
+
+======================================================================
+5. LOCAL DATA STORE
+======================================================================
+
+Use SQLite for:
+- Installed-app inventory cache
+- Detection metadata
+- Installation monitor sessions
+- Scanner rules
+- Uninstall transactions
+- Audit events
+- User preferences
+
+Recommended database file:
+%ProgramData%\\Remvora\\data.db for machine-wide metadata only if the product needs shared admin data.
+%LocalAppData%\\Remvora\\data.db for user-scoped UI/preferences.
+
+Prefer two stores when permissions differ. Do not make the normal UI write to a ProgramData database if not necessary.
+
+Schema highlights
+-----------------
+applications
+uninstall_sources
+monitor_sessions
+monitor_file_events
+monitor_registry_events
+monitor_service_events
+monitor_task_events
+cleanup_candidates
+transactions
+transaction_items
+audit_events
+scanner_rules
+app_aliases
+protected_locations
+settings
+
+Indexes
+-------
+- normalized_name
+- publisher
+- product_code
+- package_family_name
+- install_location
+- transaction_id
+- application_id
+- timestamp
+
+Version the schema with migrations.
+
+======================================================================
+6. INSTALLED APP DISCOVERY ENGINE
+======================================================================
+
+6.1 Registry discovery
+----------------------
+Implement a RegistryUninstallSource that enumerates both 32-bit and 64-bit views explicitly.
+
+Metadata to read:
+- DisplayName
+- DisplayVersion
+- Publisher
+- InstallDate
+- InstallLocation
+- EstimatedSize
+- UninstallString
+- QuietUninstallString
+- ModifyPath
+- URLInfoAbout
+- HelpLink
+- Comments
+- SystemComponent
+- ReleaseType
+- ParentKeyName
+- NoRemove
+- NoModify
+- NoRepair
+
+The Windows Installer documentation defines these uninstall registry values, including DisplayName, DisplayVersion, Publisher, InstallLocation, EstimatedSize, and UninstallString.
+
+Do not display hidden/system entries by default when they are clearly marked SystemComponent or equivalent. Offer an advanced filter to expose them.
+
+6.2 MSI discovery
+-----------------
+Call MsiEnumProductsEx to enumerate installed/advertised products across relevant contexts.
+
+For each product, correlate:
+- ProductCode
+- Context
+- User SID when applicable
+- Display metadata
+- Installation state
+
+When uninstalling an MSI product, prefer MsiConfigureProductEx for known ProductCode-driven removal rather than trying to modify the MSI registry manually.
+
+6.3 Packaged app discovery
+--------------------------
+Use PackageManager APIs to enumerate packages for the current user. With appropriate elevation and explicit user selection, support machine/user inventory as permitted by Windows.
+
+Store:
+- Package full name
+- Package family name
+- Display name
+- Publisher
+- Version
+- Install location
+- Package type
+
+6.4 Inventory refresh
+---------------------
+Triggers:
+- App startup (light refresh)
+- Manual refresh
+- After uninstall
+- After package deployment/removal
+- After installation monitor session ends
+
+Make refresh cancellable.
+
+======================================================================
+7. SIZE CALCULATION ENGINE
+======================================================================
+
+Implement two concepts:
+1. ReportedSize: installer-provided estimate
+2. ActualSize: measured files under trusted install/data roots
+
+For actual size:
+- Traverse directories asynchronously
+- Skip inaccessible folders with a recorded warning
+- Respect reparse points to avoid loops
+- Avoid following arbitrary mount points/junctions unless explicitly configured
+- Cache hashes/metadata only where needed
+
+Do not make uninstall correctness depend on successful size calculation.
+
+======================================================================
+8. STANDARD UNINSTALL ENGINE
+======================================================================
+
+8.1 Uninstall strategies
+------------------------
+Create:
+IUninstallStrategy
+
+Implementations:
+- MsiUninstallStrategy
+- RegistryCommandStrategy
+- PackageUninstallStrategy
+- Custom/UnknownStrategy
+
+Selection rules:
+1. If application is a known MSI product -> MSI strategy.
+2. If packaged app -> package strategy.
+3. Otherwise use validated uninstall command from registry.
+
+8.2 Command validation
+----------------------
+Parse command line without naïve string splitting.
+
+Capture:
+- executable
+- arguments
+- working directory
+- source registry key
+
+Display exact command information in advanced details.
+
+Do not allow an uninstall command to silently become arbitrary file deletion.
+
+8.3 Pre-uninstall checks
+------------------------
+- Confirm app still exists
+- Detect running processes associated with the app
+- Detect services
+- Detect scheduled tasks
+- Detect file locks
+- Check free disk space for transaction metadata
+- Determine whether a restore point should be attempted
+
+8.4 Restore-point policy
+------------------------
+For major uninstall operations, try to create a Windows System Restore point when available and permitted by Windows.
+
+Use SRSetRestorePoint through dynamically loaded SrClient.dll as recommended by Microsoft documentation.
+
+Important: System Restore is an additional safety layer, not the only undo mechanism.
+
+8.5 Run vendor uninstaller
+--------------------------
+Launch using the correct privilege level and wait for process completion where possible.
+
+Handle:
+- normal completion
+- user cancellation
+- reboot required
+- timeout
+- process crash
+- child process handoff
+
+Never assume exit code 0 means every component was removed.
+
+8.6 Post-uninstall refresh
+--------------------------
+After the vendor uninstaller finishes:
+1. Refresh inventory.
+2. Re-evaluate running processes.
+3. Re-scan candidate leftovers.
+4. Present a leftover review screen.
+
+======================================================================
+9. COMPLETE UNINSTALL / LEFTOVER SCANNER
+======================================================================
+
+9.1 Scanner architecture
+------------------------
+ILeftoverScanner
+  -> FileScanner
+  -> DirectoryScanner
+  -> RegistryScanner
+  -> ServiceScanner
+  -> ScheduledTaskScanner
+  -> StartupScanner
+  -> ShortcutScanner
+  -> AppDataScanner
+  -> ProgramDataScanner
+  -> MetadataScanner
+
+Each scanner returns candidates with evidence and confidence.
+
+9.2 Evidence model
+------------------
+Strong evidence:
+- Exact known install path from uninstall metadata
+- Exact MSI product/component identity
+- Exact package install directory
+- Installation monitor recorded the item as created by the app
+- Service binary path points directly into app installation directory
+- Scheduled task action points directly into app installation directory
+
+Medium evidence:
+- Vendor + normalized application name match in a known data location
+- Parent directory clearly belongs to the app
+- Startup command points to app executable
+
+Weak evidence:
+- Filename merely contains app name
+- Generic publisher folder in AppData
+- Shared runtime/cache directory
+- Registry value mentions app in arbitrary text
+
+Default selection:
+- Strong evidence: selected
+- Medium evidence: selected only if policy says low risk
+- Weak evidence: not selected
+
+9.3 Path families to scan
+-------------------------
+File system:
+- InstallLocation
+- ProgramFiles
+- ProgramFiles(x86)
+- ProgramData
+- AppData\\Local
+- AppData\\Roaming
+- LocalAppDataLow where applicable
+- Start Menu program folders
+- Desktop shortcuts
+- Common application-data roots
+
+Never recursively scan the entire C: drive for ordinary uninstall.
+
+9.4 Registry scanning
+---------------------
+Potential scopes:
+- HKCU\\Software\\<Publisher/App>
+- HKLM\\Software\\<Publisher/App>
+- 32-bit equivalent views
+- App-specific uninstall metadata
+- Known update/service registration branches
+
+Avoid unrestricted global substring searches.
+
+9.5 Services
+------------
+Use Service Control Manager APIs to enumerate services and correlate:
+- Service name
+- Display name
+- BinaryPathName
+- Dependencies
+- Start type
+- Running state
+- Associated executable publisher/signature
+
+A service should only be considered an app leftover when there is strong evidence linking it to the target application.
+
+9.6 Scheduled tasks
+-------------------
+Use Task Scheduler 2.0 interfaces to enumerate tasks and inspect:
+- Path
+- Author
+- Actions
+- Triggers
+- User/account
+- Executable paths
+
+Do not delete Microsoft/system tasks solely because a task contains a vendor name.
+
+9.7 Startup entries
+-------------------
+Inspect at minimum:
+- HKCU Run / RunOnce
+- HKLM Run / RunOnce
+- Startup folders
+- Service startup
+- Scheduled-task-at-logon entries
+
+The four primary Run/RunOnce registry keys should be represented explicitly.
+
+9.8 Shortcut cleanup
+--------------------
+Inspect Start Menu and desktop shortcuts whose targets point to removed application binaries.
+
+Show shortcut target and link path before deletion.
+
+======================================================================
+10. CANDIDATE SCORING ENGINE
+======================================================================
+
+Use deterministic scoring, not an AI model.
+
+Example score components:
++100 exact install-monitor match
++90 exact install directory match
++80 exact service binary under install directory
++80 exact task action under install directory
++75 exact vendor + app directory match
++50 app-specific registry path
++40 app-specific AppData folder
++30 shortcut target match
+-80 protected path
+-60 shared runtime indicator
+-50 Microsoft-signed/system component
+-40 generic cache/temp folder
+
+Map total score to:
+SAFE / LIKELY / AMBIGUOUS / PROTECTED
+
+Expose the evidence in the UI:
+"Matched because: service binary is C:\\Program Files\\Vendor\\App\\service.exe"
+
+Do not expose raw mathematical score as a fake certainty metric. Present an evidence category plus reasons.
+
+======================================================================
+11. FORCED UNINSTALL
+======================================================================
+
+11.1 Entry points
+-----------------
+Allow the user to select:
+- Broken installed-app entry
+- Executable
+- Install directory
+- Shortcut
+
+11.2 Discovery workflow
+-----------------------
+1. Resolve target metadata.
+2. Find possible uninstall source.
+3. Find running processes.
+4. Find services/tasks/startup items.
+5. Find installation and data directories.
+6. Build candidate set.
+7. Present preview.
+8. Require explicit confirmation.
+
+11.3 Forced cleanup policy
+--------------------------
+If the vendor uninstaller cannot run, the app may remove known associated components after explicit confirmation.
+
+Do not infer ownership from filename alone.
+
+11.4 Reboot handling
+--------------------
+When a file is locked and cannot be removed safely:
+- Report it.
+- Offer a reboot-required cleanup transaction.
+- Use Windows supported mechanisms for pending replacement/deletion where safe.
+- Never schedule arbitrary destructive scripts without recording exactly what will execute.
+
+======================================================================
+12. INSTALLATION MONITOR
+======================================================================
+
+Goal
+----
+Record what an installer changes so future uninstallation can rely on direct evidence instead of heuristics.
+
+12.1 Session lifecycle
+----------------------
+Start Monitor
+-> baseline capture
+-> launch installer
+-> user installs normally
+-> stop monitor
+-> post-snapshot
+-> diff
+-> store installation log
+
+12.2 Baseline capture
+---------------------
+Capture:
+- Relevant file tree metadata under monitored roots
+- Registry trees under chosen install-related hives
+- Services inventory
+- Scheduled tasks inventory
+- Startup entries
+- Packaged app inventory
+
+Do not snapshot the entire Windows registry or entire disk.
+
+12.3 Change capture methods
+---------------------------
+MVP:
+- Before/after snapshots
+- ReadDirectoryChangesW for selected live directory monitoring
+- RegNotifyChangeKeyValue for selected registry trees
+- Service/task inventory diff before/after
+
+Advanced later:
+- ETW-based process/registry/file correlation if measurement proves snapshot monitoring insufficient.
+
+12.4 Installer process tracking
+-------------------------------
+Track the launched installer process tree where possible.
+
+Store:
+- PID
+- Parent PID
+- Executable path
+- command line
+- start/exit timestamps
+
+The monitor should know which installer process initiated the installation, but should not assume every child process is part of the product.
+
+12.5 Noise filtering
+--------------------
+Ignore or downgrade common noise:
+- Windows Defender updates
+- Windows Search/indexing activity
+- Explorer thumbnail/cache updates
+- system-wide temporary files
+- unrelated background processes
+
+Make the noise rules configurable and testable.
+
+12.6 Installation log view
+--------------------------
+Show:
+- Created files
+- Modified files
+- Created registry keys
+- Modified registry values
+- Services created/changed
+- Tasks created/changed
+- Startup entries created
+- Summary counts
+
+Export to JSON/text for diagnostics even though the product has no CLI requirement.
+
+======================================================================
+13. BATCH UNINSTALL
+======================================================================
+
+Queue model
+-----------
+BatchJob
+- Items
+- Current item
+- Progress
+- Cancellation token
+- Failure policy
+
+Recommended default behavior:
+1. Process one application at a time.
+2. Let each vendor uninstaller finish before continuing.
+3. After each uninstaller, scan leftovers.
+4. Ask once per app unless the batch was explicitly configured as unattended within the UI.
+
+Do not run multiple uninstallers concurrently.
+
+Failure modes:
+- unavailable uninstall source
+- reboot required
+- process still running
+- permission denied
+- uninstall timeout
+- user cancelled
+
+Batch UI should preserve per-application result status.
+
+======================================================================
+14. WINDOWS APPS MANAGER
+======================================================================
+
+Use PackageManager-based discovery and package APIs for supported packaged applications.
+
+Views:
+- Store apps
+- System apps
+- User apps
+
+Risk handling:
+- Never label a core Windows package as ordinary bloatware.
+- Clearly distinguish user-removable from system-protected packages.
+- Require advanced confirmation for system-affecting package operations.
+
+Post-removal:
+- Refresh package inventory.
+- Verify package state.
+- Update transaction record.
+
+======================================================================
+15. STARTUP MANAGER
+======================================================================
+
+Sources
+-------
+1. HKCU Run
+2. HKCU RunOnce
+3. HKLM Run
+4. HKLM RunOnce
+5. Startup folders
+6. Services
+7. Scheduled tasks
+8. Additional well-known autorun locations only after explicit implementation and testing
+
+Do not try to replicate every possible Autoruns source in v1. Prioritize safe, explainable sources.
+
+For each entry:
+- source
+- user
+- command
+- parsed executable
+- publisher
+- signature
+- enabled state
+- reason/description
+
+Actions:
+- Disable where the mechanism supports reversible disablement
+- Enable
+- Remove when supported and explicitly confirmed
+- Open location
+- View details
+
+Prefer disable over deletion when both are available.
+
+======================================================================
+16. PROCESS / RUNNING-APP AWARENESS
+======================================================================
+
+Process correlation
+-------------------
+For each running process:
+- PID
+- name
+- executable path
+- command line when permission allows
+- publisher
+- signature
+- session/user
+
+Application association heuristic:
+1. exact path under InstallLocation
+2. exact known executable path
+3. service/task path relationship
+4. vendor/publisher relationship
+
+Never terminate a process solely because its filename contains the app name.
+
+Graceful termination workflow:
+1. Attempt polite close for desktop apps.
+2. Wait.
+3. Offer termination.
+4. Explain that unsaved work may be lost.
+5. Do not terminate system-critical processes.
+
+Use Restart Manager to identify applications/services using files and to assist with lock handling rather than inventing custom lock-detection logic where the API already provides it.
+
+======================================================================
+17. CLEANER ENGINE
+======================================================================
+
+17.1 Temporary/Junk cleaner
+---------------------------
+Scanner categories:
+- User temp
+- System temp
+- Recycle Bin
+- App-specific caches known to be safe
+- Crash dumps
+- Temporary installer files
+- Thumbnail caches where safe
+
+Every cleaner has:
+- source rule
+- scan path provider
+- inclusion/exclusion conditions
+- estimated size
+- risk level
+- deletion policy
+
+17.2 Cleaner rules format
+-------------------------
+Use JSON or database-stored rule definitions, e.g.:
+
+Rule:
+  Id
+  Name
+  Category
+  RootProvider
+  RelativePatterns
+  ExcludePatterns
+  RiskLevel
+  DefaultSelected
+  Explanation
+
+Never hard-code dozens of opaque paths in UI code.
+
+17.3 Privacy/history cleaner
+----------------------------
+Categories:
+- browser cache/history only where stable and fully supported by tested locations
+- Windows recent items
+- application history where confidently identified
+- Office/recent-doc style history only when tested
+
+Cookies should be a separately selectable option because deletion can sign users out.
+
+======================================================================
+18. SECURE FILE SHREDDER
+======================================================================
+
+Purpose
+-------
+Provide deliberate permanent deletion for user-selected files/folders.
+
+Scope separation
+----------------
+Shredder must be a separate tool. Never invoke it automatically from uninstall cleanup.
+
+Implementation
+--------------
+Modern storage hardware, filesystems, SSD wear-leveling, compression, encryption, and copy-on-write behavior mean software overwrite passes cannot guarantee physical media destruction.
+
+Therefore UI language should be:
+"Attempts to make deleted file contents difficult to recover"
+rather than
+"guaranteed irreversible destruction."
+
+Recommended behavior:
+- default safe deletion using documented Windows deletion semantics
+- optional overwrite pass for user-selected files on supported filesystems
+- explicit warning about SSD/flash limitations
+- final confirmation showing exact paths
+
+======================================================================
+19. BLOATWARE / UNWANTED SOFTWARE DETECTION
+======================================================================
+
+This is a detector, not an autonomous remover.
+
+Signals:
+- preinstalled OEM software
+- known bundled utilities
+- low usage
+- excessive startup behavior
+- outdated/unsupported third-party tools
+- duplicate utilities
+- vendor classification rules
+
+Classification result:
+- Potentially unwanted
+- Low-use
+- System component
+- Unknown
+
+Every classification must show reasons and source of the rule.
+
+Do not label software as malware. Security/malware classification is a separate problem and should be delegated to established security tooling if ever added.
+
+======================================================================
+20. BACKUP / UNDO / TRANSACTION ENGINE
+======================================================================
+
+20.1 Core idea
+--------------
+Before a destructive cleanup, create a transaction describing every intended change.
+
+Transaction phases:
+PREPARING
+PREVIEWED
+AUTHORIZED
+APPLYING
+VERIFYING
+COMPLETED
+PARTIAL_FAILURE
+ROLLED_BACK
+ROLLBACK_PARTIAL
+
+20.2 File backup
+----------------
+Because the requested scope excludes a quarantine system, use a transaction backup only where needed for undo semantics.
+
+Recommended approach:
+- For files that are small and safe to capture, copy them into a transaction backup directory.
+- For large trees, store metadata + use Windows System Restore where appropriate; do not duplicate multi-gigabyte application directories unless explicitly required by the transaction type.
+- Never leave backup copies indistinguishable from ordinary user files.
+
+20.3 Registry backup
+--------------------
+Record exact original values and key existence state.
+
+For larger system-state recovery, rely on Windows System Restore / supported Windows mechanisms rather than pretending that a handful of exported .reg files are a full system backup.
+
+Microsoft notes that system-state applications should use Volume Shadow Copy Service rather than RegSaveKey/RegLoadKey alone for full system state backup/restore.
+
+20.4 Service/task rollback
+--------------------------
+Store:
+- original configuration
+- original enabled/start mode
+- binary path
+- account
+- description
+- dependencies
+- task XML where accessible
+
+Rollback should recreate prior configuration only when safe and supported.
+
+20.5 Undo workflow
+------------------
+History -> select completed transaction -> Review undo -> Apply -> Verify
+
+Not every vendor uninstaller action can be perfectly reversed. The UI must mark transactions as:
+- Fully reversible
+- Partially reversible
+- Requires System Restore for broad rollback
+
+Never claim "undo" when only a subset of changes is recoverable.
+
+======================================================================
+21. CLEANUP PREVIEW / DRY RUN
+======================================================================
+
+This is a central UX feature.
+
+Every destructive operation follows:
+SCAN -> REVIEW -> AUTHORIZE -> EXECUTE -> VERIFY
+
+Preview tree sections:
+- Files
+- Folders
+- Registry
+- Services
+- Tasks
+- Startup
+- Shortcuts
+- Other metadata
+
+Each item shows:
+- exact location
+- action
+- evidence
+- risk
+- confidence
+- size if applicable
+
+Selection rules:
+- user can deselect individual entries
+- protected entries are visible but disabled
+- ambiguous entries are off by default
+
+======================================================================
+22. DIGITAL SIGNATURE / TRUST DETAILS
+======================================================================
+
+For executable targets:
+- Authenticode signature present?
+- Valid chain?
+- Signer subject
+- Publisher
+- Timestamp if available
+- Hash
+
+Display states:
+SIGNED / SIGNATURE INVALID / UNSIGNED / UNKNOWN
+
+The signature result is informational. Do not infer "safe" solely from a valid signature.
+
+Use Windows trust APIs / WinVerifyTrust-compatible verification where appropriate.
+
+Cache results to avoid repeated expensive verification.
+
+======================================================================
+23. AUDIT LOGGING
+======================================================================
+
+Write structured logs for:
+- scan started/completed
+- candidate generated
+- candidate selected/deselected
+- elevation requested
+- uninstall process started/exited
+- registry change
+- file change
+- service/task change
+- transaction state transition
+- rollback attempt/result
+- errors
+
+Log format:
+- machine-readable JSON event or normalized SQLite row
+- friendly human-readable activity summary in UI
+
+Privacy:
+- do not log file contents
+- avoid logging secrets in command lines when detectable
+- restrict logs containing privileged filesystem paths to the local machine
+
+======================================================================
+24. HUNTER MODE
+======================================================================
+
+UX
+---
+A small floating targeting surface can be activated from the main app.
+
+Potential actions after target selection:
+- identify application
+- show details
+- uninstall
+- forced uninstall
+- open install folder
+- stop process
+
+Target acquisition options:
+- drag/drop executable
+- drag/drop shortcut
+- pick from running process list
+
+Do not rely on fragile window-text matching. Resolve the selected target to executable path/process where possible.
+
+======================================================================
+25. UI INFORMATION ARCHITECTURE
+======================================================================
+
+Main navigation
+---------------
+Dashboard
+Apps
+  - All Apps
+  - Store / Windows Apps
+  - Recent Installs
+  - Large Apps
+Uninstall History
+Installation Monitor
+Startup Manager
+Cleanup
+  - Junk Files
+  - Privacy / History
+File Shredder
+System Inspector
+  - Running Processes
+  - Services
+  - Scheduled Tasks
+Windows Tools
+Settings
+
+Dashboard cards
+---------------
+- Installed apps count
+- Recently installed apps
+- Potential leftover size
+- Startup items count
+- Junk size available
+- Last cleanup
+- Last operation result
+
+App details panel
+-----------------
+Header:
+Name / Publisher / Version
+
+Metadata tabs:
+Overview | Uninstall | Location | Processes | Services | Tasks | Registry | History
+
+Avoid opening multiple modal windows for every step. Use side panels and a dedicated review page for destructive operations.
+
+======================================================================
+26. UI DESIGN SYSTEM
+======================================================================
+
+Visual direction
+----------------
+Modern Windows 11 utility:
+- clean spacing
+- strong typography hierarchy
+- restrained accent color
+- clear semantic status indicators
+- high-density tables for power users
+- keyboard navigation
+- accessible contrast
+
+Component list
+--------------
+- AppListView
+- AppRow
+- AppDetailsPane
+- FilterBar
+- SearchBox
+- StatusBadge
+- EvidenceBadge
+- PreviewTree
+- OperationProgressPanel
+- TransactionSummary
+- ProtectedItemRow
+- ProcessTable
+- StartupTable
+- ServiceTable
+- TaskTable
+- ScannerRuleCard
+- AuditTimeline
+
+Do not encode business logic inside XAML converters or code-behind.
+
+======================================================================
+27. WORKFLOWS
+======================================================================
+
+27.1 Normal uninstall
+---------------------
+User selects app
+-> details
+-> "Uninstall"
+-> safety checks
+-> optional restore point
+-> vendor uninstaller
+-> inventory refresh
+-> leftover scan
+-> review leftovers
+-> execute selected cleanup
+-> verify
+-> save transaction
+-> result summary
+
+27.2 Forced uninstall
+----------------------
+User selects broken target
+-> identify target
+-> inspect processes/services/tasks
+-> build candidates
+-> preview
+-> confirm
+-> cleanup
+-> reboot-required detection
+-> verify
+
+27.3 Monitor install
+--------------------
+Start Monitor
+-> baseline
+-> launch installer
+-> live monitoring
+-> installer exits
+-> post baseline
+-> diff
+-> user names installation
+-> save installation log
+
+27.4 Startup manager
+--------------------
+Load startup sources
+-> normalize entries
+-> enrich publisher/signature
+-> display risk/info
+-> disable/remove
+-> transaction
+-> refresh
+
+27.5 Cleaner
+------------
+Choose categories
+-> scan
+-> show exact items
+-> select/deselect
+-> confirm
+-> transaction
+-> clean
+-> verify reclaimed space
+
+======================================================================
+28. WINDOWS API / INTEROP MODULES
+======================================================================
+
+Centralize interop under Remvora.Windows.Native.
+
+Likely API groups:
+- advapi32: Registry, SCM
+- msi.dll: MSI enumeration/uninstall
+- restartmanager: locked-resource analysis
+- taskschd.dll: Task Scheduler COM
+- shell32/shlwapi: shell/shortcut helpers as required
+- user32: window/process targeting for Hunter Mode as required
+- psapi/toolhelp: process enumeration, depending on chosen implementation
+- wintrust: signature verification
+- srclient: System Restore
+- kernel32: filesystem primitives, file handles, notifications
+- ole32/combase: COM initialization/security
+- Windows.Management.Deployment: packaged app inventory/removal
+
+Prefer Microsoft.Windows.CsWin32 for new Win32 interop. Use source-generated LibraryImport only for narrowly scoped cases where CsWin32 is not practical. Avoid legacy handwritten DllImport unless documented and reviewed.
+
+======================================================================
+29. FILESYSTEM IMPLEMENTATION DETAILS
+======================================================================
+
+Use long-path-aware APIs and normalize extended path prefixes where needed.
+
+Be careful with:
+- symbolic links
+- junctions
+- mount points
+- reparse points
+- ACL-denied paths
+- files with alternate data streams
+- read-only/system attributes
+- concurrent changes
+
+Scanner should classify errors instead of failing the entire operation.
+
+Delete semantics:
+- directories only after children are processed
+- never follow reparse points during ordinary recursive cleanup
+- verify the final state after deletion
+
+======================================================================
+30. REGISTRY IMPLEMENTATION DETAILS
+======================================================================
+
+Registry wrapper interface:
+IRegistryReader
+IRegistryWriter
+IRegistrySnapshotProvider
+
+Support explicit RegistryView:
+Default / Registry32 / Registry64
+
+Snapshot model:
+RegistryKeyState
+- Exists
+- Values
+- Subkeys list
+
+Never let the scanner silently switch between 32-bit and 64-bit views.
+
+======================================================================
+31. SERVICE IMPLEMENTATION DETAILS
+======================================================================
+
+Use SCM APIs through a dedicated adapter.
+
+Operations:
+- enumerate
+- query status
+- query configuration
+- stop
+- start
+- delete
+- restore configuration when possible
+
+Safety:
+- identify dependent services before stop/delete
+- block deletion of protected Windows services
+- warn when service account is LocalSystem or similarly privileged
+- record binary path and signature before change
+
+======================================================================
+32. TASK SCHEDULER IMPLEMENTATION DETAILS
+======================================================================
+
+Use Task Scheduler COM interfaces through a wrapper.
+
+Operations:
+- enumerate folders recursively
+- inspect tasks
+- read task XML where possible
+- disable
+- delete
+- restore from recorded XML when safe
+
+Do not modify task triggers merely to improve startup speed in v1.
+
+======================================================================
+33. MONITORING IMPLEMENTATION DETAILS
+======================================================================
+
+Snapshot/diff engine
+--------------------
+Implement canonical snapshot records for:
+- files
+- directories
+- registry keys/values
+- services
+- tasks
+- startup entries
+- packages
+
+Canonicalization is critical:
+- normalize path case appropriately
+- normalize registry path representation
+- normalize environment variables
+- preserve original values
+
+Diff operations:
+ADDED
+REMOVED
+MODIFIED
+RENAMED where confidently inferred
+
+Do not claim rename detection unless source/destination can be linked with high confidence.
+
+======================================================================
+34. ERROR HANDLING
+======================================================================
+
+Expected OS errors should produce structured result objects:
+- AccessDenied
+- NotFound
+- Locked
+- InUse
+- Timeout
+- RebootRequired
+- Unsupported
+- Cancelled
+- PartialFailure
+- UnknownFailure
+
+The UI must turn these into actionable messages.
+
+Example:
+"3 files could not be removed because they are in use by SearchIndexer.exe."
+
+Not:
+"Cleanup failed with HRESULT 0x80004005."
+
+Keep raw error codes in the details panel/log.
+
+======================================================================
+35. PERFORMANCE REQUIREMENTS
+======================================================================
+
+Targets for a normal PC:
+- Installed-app inventory visible quickly from cache.
+- Full inventory refresh should stream results rather than block the UI.
+- Scanners should report progress continuously.
+- Large directories should use producer/consumer pipelines.
+- Cancellation must stop expensive scans.
+- Signature verification and size calculations should be parallelized with bounded concurrency.
+
+Never use unbounded Task.WhenAll over tens of thousands of files.
+
+======================================================================
+36. THREADING / ASYNC RULES
+======================================================================
+
+UI thread:
+- rendering only
+- small state transformations
+
+Background:
+- registry enumeration
+- filesystem traversal
+- size calculation
+- signature validation
+- package enumeration
+- service/task inspection
+
+Privileged worker:
+- dedicated cancellation support
+- one operation pipeline at a time for destructive operations
+
+Pass CancellationToken through every scanner and use it consistently.
+
+======================================================================
+37. OBSERVABILITY
+======================================================================
+
+Three levels:
+1. User-facing activity timeline
+2. Structured local audit event stream
+3. Developer diagnostic logs
+
+Support a Diagnostic Mode in Settings that increases verbosity without changing destructive behavior.
+
+Include correlation IDs:
+OperationId
+TransactionId
+MonitorSessionId
+
+======================================================================
+38. TEST STRATEGY
+======================================================================
+
+38.1 Unit tests
+---------------
+Test:
+- name normalization
+- publisher normalization
+- application deduplication
+- path canonicalization
+- protected-path policy
+- candidate scoring
+- command-line parsing
+- registry snapshot diffs
+- file snapshot diffs
+- transaction state machine
+- risk classification
+
+38.2 Windows integration tests
+------------------------------
+Create disposable fixture apps that deliberately create:
+- files
+- AppData folders
+- registry keys
+- services
+- scheduled tasks
+- startup entries
+- shortcuts
+- child processes
+
+Build several fixture variants:
+A. clean MSI
+B. EXE installer
+C. intentionally broken uninstaller
+D. per-user installation
+E. per-machine installation
+F. service-based app
+G. scheduled-task app
+H. app with shared runtime folder
+
+Each fixture must have a scripted reset to return the VM to a known state.
+
+38.3 VM matrix
+---------------
+At minimum test supported Windows versions in clean snapshots.
+
+Recommended matrix:
+- Windows 11 current supported release
+- Windows 11 previous supported release
+- Windows 10 only if the chosen product support policy requires it
+- x64
+- ARM64 if shipping ARM64
+
+Also test:
+- standard user
+- local admin with UAC
+- different UAC settings
+- non-English Windows locale
+- paths with spaces
+- Unicode paths
+- very long paths
+- multiple user profiles
+
+38.4 Destructive-operation tests
+---------------------------------
+Every deletion path must be tested against:
+- access denied
+- locked file
+- missing parent
+- file changed between scan and execute
+- user deselection
+- cancellation mid-operation
+- process crash
+- worker crash
+- power loss simulation where practical
+
+38.5 Property-based tests
+-------------------------
+Useful for:
+- path normalization
+- registry key canonicalization
+- candidate deduplication
+- transaction serialization/deserialization
+
+======================================================================
+39. SECURITY / THREAT MODEL
+======================================================================
+
+Threats
+-------
+1. Malicious local process attempts to send commands to elevated worker.
+2. TOCTOU: file changes between scan and deletion.
+3. Malicious reparse point redirects deletion.
+4. Untrusted executable is launched from an uninstall entry.
+5. Compromised installer attempts to abuse monitor privileges.
+6. Logs expose secrets.
+7. Corrupted transaction data causes unintended rollback.
+
+Mitigations
+-----------
+- restrictive named-pipe ACL
+- request validation and allow-list
+- re-resolve/revalidate paths immediately before destructive operation
+- no reparse-point traversal
+- signed application binaries
+- verify executable paths and signatures for display; do not overtrust them
+- transaction integrity checks
+- structured serialization with versioning
+- audit logging
+- least privilege
+- explicit confirmation of destructive actions
+
+======================================================================
+40. INSTALLER / DEPLOYMENT
+======================================================================
+
+Development build:
+- unpackaged WinUI app for fastest iteration if desired.
+
+Release build:
+- signed installer
+- per-machine install option if desired
+- bundled runtime where practical
+- UAC worker installed with the main product
+- clear upgrade strategy
+
+Need to define:
+- application identity
+- publisher certificate
+- package name
+- update mechanism for the app itself (not third-party software updates)
+
+The product itself must support reliable self-update eventually, but that is separate from the explicitly excluded Software Updater feature.
+
+======================================================================
+41. CONFIGURATION
+======================================================================
+
+Settings categories:
+General
+- start with Windows
+- language
+- theme
+- default scan behavior
+
+Uninstall
+- create restore point when possible
+- default leftover selections
+- show advanced system items
+- process-termination behavior
+
+Cleaner
+- selected categories
+- delete cookies toggle
+
+Safety
+- strict protected paths
+- require extra confirmation for system changes
+
+Diagnostics
+- log verbosity
+- export diagnostic bundle
+
+======================================================================
+42. IMPLEMENTATION PHASES
+======================================================================
+
+PHASE 0 - Project bootstrap
+---------------------------
+Deliverables:
+- solution
+- projects
+- dependency injection
+- logging
+- SQLite
+- base WinUI navigation
+- theme
+- CI build
+- test project structure
+
+Definition of done:
+- app launches
+- navigation works
+- database migrates
+- tests execute in CI
+
+PHASE 1 - Installed Apps inventory
+----------------------------------
+Implement:
+- registry discovery
+- MSI enumeration
+- package inventory
+- canonical app model
+- deduplication
+- search/filter/sort
+- details pane
+
+Definition of done:
+- inventory matches Windows-installed fixtures
+- no duplicate app records for known MSI entries
+
+PHASE 2 - Normal uninstall
+---------------------------
+Implement:
+- uninstall strategy interface
+- MSI uninstall
+- registry-command uninstall
+- package uninstall
+- process precheck
+- reboot detection
+- inventory refresh
+
+Definition of done:
+- fixture apps uninstall cleanly through vendor uninstallers
+
+PHASE 3 - Leftover scanner
+--------------------------
+Implement:
+- file scanner
+- registry scanner
+- service scanner
+- task scanner
+- startup scanner
+- shortcut scanner
+- candidate evidence model
+- preview tree
+
+Definition of done:
+- fixture leftovers detected
+- unrelated shared components remain untouched
+
+PHASE 4 - Transaction/recovery system
+-------------------------------------
+Implement:
+- transaction state machine
+- file backups where appropriate
+- registry original-state records
+- service/task rollback metadata
+- System Restore integration
+- activity logs
+
+Definition of done:
+- interrupted operation leaves a recoverable transaction record
+- rollback restores tested changes
+
+PHASE 5 - Forced uninstall
+---------------------------
+Implement:
+- target selection
+- broken uninstall handling
+- forced candidate builder
+- locked-resource analysis
+- reboot-required cleanup scheduling
+
+Definition of done:
+- intentionally broken fixtures can be removed without touching unrelated fixtures
+
+PHASE 6 - Batch uninstall
+--------------------------
+Implement:
+- queue
+- per-app status
+- cancellation
+- continue/stop policy
+
+PHASE 7 - Installation monitor
+------------------------------
+Implement:
+- baseline snapshots
+- live filesystem notifications
+- registry change notifications
+- process tree capture
+- diff engine
+- installation log UI
+
+PHASE 8 - Startup/system inspector
+----------------------------------
+Implement:
+- startup sources
+- service manager
+- Task Scheduler manager
+- process inspector
+- signature enrichment
+
+PHASE 9 - Cleaner
+-----------------
+Implement:
+- junk rule engine
+- temporary files
+- recycle bin
+- crash dumps
+- privacy/history categories
+- preview and transaction execution
+
+PHASE 10 - File shredder
+------------------------
+Implement separate shredder surface with explicit warnings and tests.
+
+PHASE 11 - Bloatware detector
+-----------------------------
+Implement rule database, evidence explanations, and conservative classifications.
+
+PHASE 12 - Hunter Mode + polish
+-------------------------------
+Implement targeting workflow, UX polish, accessibility, keyboard support, localization scaffolding, diagnostics.
+
+======================================================================
+43. VIBE-CODING EXECUTION ORDER
+======================================================================
+
+Do not ask a coding model to implement the entire app in one prompt.
+
+Use a vertical-slice sequence.
+
+Prompt block 1:
+"Create the WinUI 3 .NET 10 solution with layered projects, dependency injection, logging, SQLite migrations, and a basic navigation shell. Do not implement Windows destructive operations yet."
+
+Prompt block 2:
+"Implement the installed application domain model and registry/MSI/package discovery behind interfaces. Add fixture-driven tests."
+
+Prompt block 3:
+"Implement the application list UI, search, filter, sorting, and details panel using the existing domain services."
+
+Prompt block 4:
+"Implement the uninstall engine with strategy selection. Use MSI APIs for MSI products and validated uninstall commands for other entries. Add dry-run result objects and tests."
+
+Prompt block 5:
+"Implement the leftover scanner as independent scanners producing evidence-backed CleanupCandidate objects. Add a protected-path policy."
+
+Prompt block 6:
+"Implement the review/preview tree and transaction execution pipeline. No deletion should occur without a transaction and explicit user authorization."
+
+Prompt block 7:
+"Implement the elevated worker and secure named-pipe protocol. The UI remains unelevated; the worker validates all requests."
+
+Prompt block 8:
+"Implement service, scheduled-task, startup, and process adapters and integrate them into the scanner."
+
+Prompt block 9:
+"Implement installation monitoring with before/after snapshots first. Add live notifications only after the snapshot diff is stable."
+
+Prompt block 10:
+"Implement cleaner rule engine and file shredder as separate modules."
+
+Every coding-model prompt should include:
+- exact files to change
+- interfaces already present
+- acceptance criteria
+- tests required
+- safety constraints
+- "do not refactor unrelated code"
+
+======================================================================
+44. CODING CONVENTIONS
+======================================================================
+
+Use nullable reference types.
+Use analyzers and warnings-as-errors for core projects where feasible.
+Prefer records for immutable DTOs.
+Prefer explicit enums over strings for internal operation types.
+Use CancellationToken everywhere for long-running work.
+Avoid static global service locators.
+Do not hide Windows API calls in arbitrary utility classes.
+Document every privileged native call.
+
+Naming examples:
+IApplicationDiscoveryService
+MsiApplicationSource
+RegistryApplicationSource
+PackageApplicationSource
+LeftoverScanService
+FileLeftoverScanner
+RegistryLeftoverScanner
+ServiceLeftoverScanner
+TaskLeftoverScanner
+UninstallOrchestrator
+TransactionManager
+PrivilegeBroker
+SignatureVerifier
+RestartManagerClient
+SystemRestoreClient
+
+======================================================================
+45. ACCEPTANCE CRITERIA FOR V1
+======================================================================
+
+Installed apps:
+- all supported discovery sources load and deduplicate correctly.
+
+Normal uninstall:
+- vendor/MSI/package uninstaller executes correctly.
+- app disappears from inventory afterward.
+
+Leftovers:
+- known test leftovers are detected.
+- unrelated shared components remain.
+
+Forced uninstall:
+- broken fixture can be removed after explicit review.
+
+Safety:
+- protected paths cannot be selected.
+- no destructive operation happens without user authorization.
+- worker rejects malformed/unauthorized IPC requests.
+
+Recovery:
+- transaction records are created for destructive operations.
+- tested file/registry/service/task changes can be restored where the transaction promises reversibility.
+
+Startup/system inspector:
+- sources are shown accurately.
+- disable/delete actions are auditable.
+
+Cleaner:
+- scan results show exact files.
+- deletion is cancellable.
+
+Performance:
+- no UI freezes during full scans.
+- scans are cancellable and incremental.
+- large inventories do not require loading all filesystem/registry results into memory at once.
+- Release-build profiling is required before introducing native-code optimizations.
+
+Reliability:
+- crash during an operation leaves enough state to report partial failure accurately.
+
+======================================================================
+46. MVP CUT LINE
+======================================================================
+
+For the first usable release, do NOT attempt to perfect everything.
+
+MVP should contain:
+1. Installed Apps
+2. Normal uninstall
+3. Leftover scan
+4. Preview/dry run
+5. Transaction/audit log
+6. Forced uninstall
+7. Windows Apps Manager
+8. Process awareness
+
+After MVP stability, add:
+9. Startup Manager
+10. Services/tasks inspector
+11. Installation Monitor
+12. Cleaner
+13. Privacy/history cleaner
+14. Shredder
+15. Bloatware detector
+16. Hunter Mode
+
+The quality bar for the uninstall engine should be much higher than the quality bar for secondary tools.
+
+======================================================================
+47. IMPORTANT IMPLEMENTATION RULES
+======================================================================
+
+Rule 1
+------
+Never implement leftover cleanup as "search for the app name everywhere and delete matches."
+
+Rule 2
+------
+Never run the entire UI elevated just because one operation needs admin access.
+
+Rule 3
+------
+Never use a single confidence number without explaining evidence.
+
+Rule 4
+------
+Never assume a directory is exclusively owned by one application unless evidence supports it.
+
+Rule 5
+------
+Never delete protected Windows files/registry locations.
+
+Rule 6
+------
+Never terminate a process solely on a name match.
+
+Rule 7
+------
+Never modify a service/task/startup entry without recording its original state.
+
+Rule 8
+------
+Never claim an undo is complete unless every change promised by the transaction has been restored.
+
+Rule 9
+------
+Every scanner must be independently testable without the WinUI app.
+
+Rule 10
+-------
+Every Windows API integration must have a wrapper interface so the core logic can be tested without a real machine state.
+
+======================================================================
+48. LIKELY FILE / FOLDER STRUCTURE
+======================================================================
+
+src/Remvora.App/
+  App.xaml
+  App.xaml.cs
+  Shell/
+  Navigation/
+  Views/
+  ViewModels/
+  Controls/
+  Styles/
+
+src/Remvora.Core/
+  Domain/
+  Policies/
+  Results/
+  Abstractions/
+
+src/Remvora.Application/
+  Services/
+  Workflows/
+  Commands/
+  Queries/
+
+src/Remvora.Infrastructure/
+  Database/
+  Repositories/
+  Logging/
+  Configuration/
+
+src/Remvora.Windows/
+  Registry/
+  Msi/
+  Packages/
+  Services/
+  Tasks/
+  Processes/
+  FileSystem/
+  RestartManager/
+  SystemRestore/
+  Signatures/
+  Shell/
+
+src/Remvora.Elevation/
+  Program.cs
+  Pipe/
+  Handlers/
+  Security/
+  Operations/
+
+src/Remvora.Contracts/
+  Requests/
+  Responses/
+  Progress/
+  Serialization/
+
+tests/
+  Core/
+  Application/
+  Infrastructure/
+  Windows/
+  Integration/
+
+======================================================================
+49. RECOMMENDED FIRST CODING SESSION
+======================================================================
+
+Session objective: get a real shell + real app inventory on screen without any deletion.
+
+Tasks:
+1. Create solution and projects.
+2. Add WinUI 3 + Windows App SDK 2.5.1 Stable.
+3. Target .NET 10 LTS and Windows 11 x64.
+4. Add CommunityToolkit.Mvvm.
+5. Add SQLite + Microsoft.Data.Sqlite + Dapper.
+6. Add Microsoft.Windows.CsWin32 and establish the Win32 API generation list.
+7. Add structured logging.
+8. Create ApplicationRecord and related domain types.
+9. Implement RegistryApplicationSource read-only.
+10. Implement MSI application source read-only.
+11. Implement package application source read-only.
+12. Implement deduplication.
+13. Display applications in the UI.
+14. Add search and sorting.
+15. Add a details page.
+16. Add integration fixtures.
+17. Write tests before adding destructive functionality.
+
+Do NOT implement delete/uninstall in the first coding session.
+
+======================================================================
+50. DEFINITION OF DONE FOR THE WHOLE PRODUCT
+======================================================================
+
+The product is not done when the buttons work.
+
+It is done when:
+- discovery is accurate,
+- destructive actions are reviewable,
+- privileged operations are isolated,
+- the scanner explains evidence,
+- rollback behaves honestly,
+- failures are recoverable,
+- Windows edge cases are tested in disposable VMs,
+- and the system remains understandable to the developer maintaining it.
+
+======================================================================
+END OF PLAN
+======================================================================

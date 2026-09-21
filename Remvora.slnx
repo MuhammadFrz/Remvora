@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Remvora.Application/Remvora.Application.csproj" />
+    <Project Path="src/Remvora.Contracts/Remvora.Contracts.csproj" />
+    <Project Path="src/Remvora.Core/Remvora.Core.csproj" />
+    <Project Path="src/Remvora.Elevation/Remvora.Elevation.csproj" />
+    <Project Path="src/Remvora.Infrastructure/Remvora.Infrastructure.csproj" />
+    <Project Path="src/Remvora.Windows/Remvora.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Remvora.Application.Tests/Remvora.Application.Tests.csproj" />
+    <Project Path="tests/Remvora.Contracts.Tests/Remvora.Contracts.Tests.csproj" />
+    <Project Path="tests/Remvora.Core.Tests/Remvora.Core.Tests.csproj" />
+    <Project Path="tests/Remvora.Infrastructure.Tests/Remvora.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Remvora.Windows.Tests/Remvora.Windows.Tests.csproj" />
+  </Folder>
+</Solution>

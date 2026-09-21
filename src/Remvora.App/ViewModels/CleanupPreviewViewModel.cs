@@ -26,6 +26,19 @@ public sealed partial class CandidateItemViewModel : ObservableObject
     public bool IsProtected => Candidate.IsProtected;
     public bool CanToggleSelection => !Candidate.IsProtected;
 
+    public string KindGlyph => Candidate.Kind switch
+    {
+        CandidateKind.File => "\uE7C3",
+        CandidateKind.Directory => "\uE8B7",
+        CandidateKind.RegistryKey => "\uEA86",
+        CandidateKind.RegistryValue => "\uEA86",
+        CandidateKind.Service => "\uE9F5",
+        CandidateKind.ScheduledTask => "\uE823",
+        CandidateKind.StartupEntry => "\uE7B5",
+        CandidateKind.Shortcut => "\uE71B",
+        _ => "\uE7C3"
+    };
+
     public string SizeFormatted
     {
         get
@@ -69,6 +82,9 @@ public sealed partial class CleanupPreviewViewModel : ObservableObject
     public ObservableCollection<CandidateItemViewModel> Candidates { get; } = [];
 
     [ObservableProperty]
+    public partial ObservableCollection<CandidateItemViewModel> FilteredCandidates { get; set; } = [];
+
+    [ObservableProperty]
     public partial string FilterKind { get; set; } = "All";
 
     [ObservableProperty]
@@ -107,7 +123,26 @@ public sealed partial class CleanupPreviewViewModel : ObservableObject
             Candidates.Add(itemVm);
         }
 
+        ApplyFilter();
         UpdateStatistics();
+    }
+
+    partial void OnFilterKindChanged(string value) => ApplyFilter();
+
+    private void ApplyFilter()
+    {
+        var query = Candidates.AsEnumerable();
+
+        query = FilterKind switch
+        {
+            "Files" => query.Where(c => c.Kind is CandidateKind.File or CandidateKind.Directory),
+            "Registry" => query.Where(c => c.Kind is CandidateKind.RegistryKey or CandidateKind.RegistryValue),
+            "Services" => query.Where(c => c.Kind is CandidateKind.Service or CandidateKind.ScheduledTask),
+            "Shortcuts" => query.Where(c => c.Kind is CandidateKind.Shortcut or CandidateKind.StartupEntry),
+            _ => query
+        };
+
+        FilteredCandidates = new ObservableCollection<CandidateItemViewModel>(query.ToList());
     }
 
     private void UpdateStatistics()
@@ -124,7 +159,7 @@ public sealed partial class CleanupPreviewViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void SelectAll()
+    public void SelectAll()
     {
         foreach (var c in Candidates)
         {
@@ -134,7 +169,7 @@ public sealed partial class CleanupPreviewViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void SelectRecommended()
+    public void SelectRecommended()
     {
         foreach (var c in Candidates)
         {
@@ -144,7 +179,7 @@ public sealed partial class CleanupPreviewViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void DeselectAll()
+    public void DeselectAll()
     {
         foreach (var c in Candidates)
         {
@@ -152,6 +187,9 @@ public sealed partial class CleanupPreviewViewModel : ObservableObject
                 c.IsSelected = false;
         }
     }
+
+    public IReadOnlyList<Guid> GetSelectedCandidateIds() =>
+        Candidates.Where(c => c.IsSelected && !c.IsProtected).Select(c => c.Candidate.Id).ToList();
 
     private static string FormatBytes(long bytes)
     {

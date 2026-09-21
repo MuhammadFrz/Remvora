@@ -52,6 +52,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Policies
         services.AddSingleton<IProtectedPathsPolicy, ProtectedPathsPolicy>();
         services.AddSingleton<IDeduplicationPolicy, DeduplicationPolicy>();
+        services.AddSingleton<ICandidateScoringPolicy, CandidateScoringPolicy>();
 
         // Platform interop accessors
         services.AddSingleton<IRegistryAccessor, WindowsRegistryAccessor>();
@@ -66,6 +67,14 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Application Services
         services.AddSingleton<IApplicationDiscoveryService, ApplicationDiscoveryService>();
         services.AddSingleton<IUninstallOrchestrator, Remvora.Application.Workflows.UninstallOrchestrator>();
+
+        // Leftover Scanners
+        services.AddSingleton<Remvora.Application.Leftovers.ILeftoverScanner, Remvora.Application.Leftovers.CompositeLeftoverScanner>();
+        services.AddSingleton<Remvora.Application.Leftovers.ISubLeftoverScanner, Remvora.Windows.Leftovers.WindowsFileLeftoverScanner>();
+        services.AddSingleton<Remvora.Application.Leftovers.ISubLeftoverScanner, Remvora.Windows.Leftovers.WindowsRegistryLeftoverScanner>();
+        services.AddSingleton<Remvora.Application.Leftovers.ISubLeftoverScanner, Remvora.Windows.Leftovers.WindowsShortcutLeftoverScanner>();
+        services.AddSingleton<Remvora.Application.Leftovers.ISubLeftoverScanner, Remvora.Windows.Leftovers.WindowsServiceLeftoverScanner>();
+        services.AddSingleton<Remvora.Application.Leftovers.ISubLeftoverScanner, Remvora.Windows.Leftovers.WindowsScheduledTaskLeftoverScanner>();
 
         // Processes & System Restore
         services.AddSingleton<Remvora.Application.Processes.IProcessDetector, Remvora.Windows.Processes.WindowsProcessDetector>();

@@ -7,6 +7,7 @@ namespace Remvora.Windows.Registry;
 /// </summary>
 public interface IRegistryAccessor
 {
+    bool KeyExists(RegistryHive hive, RegistryView view, string subKeyPath);
     IReadOnlyList<string> GetSubKeyNames(RegistryHive hive, RegistryView view, string subKeyPath);
     IReadOnlyDictionary<string, object?>? GetValues(RegistryHive hive, RegistryView view, string subKeyPath);
     object? GetValue(RegistryHive hive, RegistryView view, string subKeyPath, string valueName);
@@ -17,6 +18,19 @@ public interface IRegistryAccessor
 /// </summary>
 public sealed class WindowsRegistryAccessor : IRegistryAccessor
 {
+    public bool KeyExists(RegistryHive hive, RegistryView view, string subKeyPath)
+    {
+        try
+        {
+            using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+            using var subKey = baseKey.OpenSubKey(subKeyPath);
+            return subKey != null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
     public IReadOnlyList<string> GetSubKeyNames(RegistryHive hive, RegistryView view, string subKeyPath)
     {
         try

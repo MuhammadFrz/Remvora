@@ -13,6 +13,11 @@ public sealed class RegistryApplicationSourceTests
     {
         public Dictionary<(RegistryHive Hive, RegistryView View, string Path), Dictionary<string, object?>> Storage { get; } = new();
 
+        public bool KeyExists(RegistryHive hive, RegistryView view, string subKeyPath)
+        {
+            return Storage.ContainsKey((hive, view, subKeyPath));
+        }
+
         public IReadOnlyList<string> GetSubKeyNames(RegistryHive hive, RegistryView view, string subKeyPath)
         {
             var prefix = subKeyPath.TrimEnd('\\') + "\\";

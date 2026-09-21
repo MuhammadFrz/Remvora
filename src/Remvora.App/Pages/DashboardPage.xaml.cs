@@ -26,6 +26,7 @@ public sealed partial class DashboardPage : Page
         var targetType = destination switch
         {
             "apps" => typeof(AppsPage),
+            "monitor" => typeof(InstallMonitorPage),
             "winapps" => typeof(WindowsAppsPage),
             "startup" => typeof(StartupPage),
             "cleaner" => typeof(CleanerPage),

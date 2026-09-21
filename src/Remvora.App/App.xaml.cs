@@ -68,8 +68,9 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<IApplicationDiscoveryService, ApplicationDiscoveryService>();
         services.AddSingleton<IUninstallOrchestrator, Remvora.Application.Workflows.UninstallOrchestrator>();
 
-        // Leftover Scanners
+        // Leftover Scanners & Planner
         services.AddSingleton<Remvora.Application.Leftovers.ILeftoverScanner, Remvora.Application.Leftovers.CompositeLeftoverScanner>();
+        services.AddSingleton<Remvora.Application.Leftovers.ICleanupPlanner, Remvora.Application.Leftovers.CleanupPlanner>();
         services.AddSingleton<Remvora.Application.Leftovers.ISubLeftoverScanner, Remvora.Windows.Leftovers.WindowsFileLeftoverScanner>();
         services.AddSingleton<Remvora.Application.Leftovers.ISubLeftoverScanner, Remvora.Windows.Leftovers.WindowsRegistryLeftoverScanner>();
         services.AddSingleton<Remvora.Application.Leftovers.ISubLeftoverScanner, Remvora.Windows.Leftovers.WindowsShortcutLeftoverScanner>();
@@ -94,6 +95,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         // ViewModels
         services.AddTransient<AppsViewModel>();
         services.AddTransient<DashboardViewModel>();
+        services.AddTransient<CleanupPreviewViewModel>();
 
         return services.BuildServiceProvider();
     }

@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\Remvora.Windows\Remvora.Windows.csproj" />
     <ProjectReference Include="..\..\src\Remvora.Core\Remvora.Core.csproj" />
     <ProjectReference Include="..\..\src\Remvora.Contracts\Remvora.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Remvora.Elevation\Remvora.Elevation.csproj" />
   </ItemGroup>
 
 </Project>

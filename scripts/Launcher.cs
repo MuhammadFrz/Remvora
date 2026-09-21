@@ -15,9 +15,9 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("Remvora")]
 [assembly: AssemblyCompany("Remvora")]
 [assembly: AssemblyCopyright("Copyright © 2026 Remvora")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
-[assembly: AssemblyInformationalVersion("1.2.0")]
+[assembly:AssemblyVersion("1.2.1.0")]
+[assembly: AssemblyFileVersion("1.2.1.0")]
+[assembly: AssemblyInformationalVersion("1.2.1")]
 
 namespace Remvora.Launcher
 {
@@ -261,7 +261,7 @@ namespace Remvora.Launcher
             }
         }
 
-        public const string FallbackVersion = "1.2.0";
+        public const string FallbackVersion = "1.2.1";
 
         public static string GetAppVersion(string targetExe = null)
         {

@@ -12,7 +12,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private UpdateCheckResult? _currentUpdate;
 
     [ObservableProperty]
-    public partial string CurrentVersion { get; set; } = "1.2.0";
+    public partial string CurrentVersion { get; set; } = "1.2.1";
 
     [ObservableProperty]
     public partial bool IsCheckingForUpdates { get; set; }
@@ -143,7 +143,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             {
                 IsUpdateAvailable = false;
                 IsReadyToRestart = true;
-                StatusMessage = "Update downloaded and cryptographically verified. Ready to apply!";
+                StatusMessage = "Update downloaded and cryptographically verified. Ready to install!";
             }
             else
             {
@@ -167,12 +167,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         try
         {
+            StatusMessage = "Installing update files and restarting Remvora...";
             _updateService.ApplyUpdateAndRestart();
         }
         catch (Exception ex)
         {
             HasError = true;
-            StatusMessage = $"Failed to trigger restart: {ex.Message}";
+            StatusMessage = $"Failed to install update: {ex.Message}";
         }
     }
 
@@ -192,7 +193,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             return $"{ver.Major}.{ver.Minor}.{ver.Build}";
         }
 
-        return "1.2.0";
+        return "1.2.1";
     }
 
     private static string FormatBytes(long bytes)

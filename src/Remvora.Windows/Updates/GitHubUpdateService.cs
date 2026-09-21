@@ -346,7 +346,7 @@ public sealed partial class GitHubUpdateService : IUpdateService
             return $"{ver.Major}.{ver.Minor}.{ver.Build}";
         }
 
-        return "1.2.0";
+        return "1.2.1";
     }
 
     private static Version ParseVersion(string version)

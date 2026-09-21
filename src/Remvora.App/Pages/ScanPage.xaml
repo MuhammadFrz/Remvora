@@ -155,6 +155,10 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <Grid Margin="0,4,0,0">
+                        <TextBlock Text="Progress" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{x:Bind ViewModel.ScanProgressPercentText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Right"/>
+                    </Grid>
                     <ProgressBar Value="{x:Bind ViewModel.ScanProgressPercent, Mode=OneWay}" Maximum="100" Height="6"/>
 
                     <TextBlock
@@ -358,6 +362,10 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <Grid Margin="0,4,0,0">
+                        <TextBlock Text="Progress" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{x:Bind ViewModel.ScanProgressPercentText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Right"/>
+                    </Grid>
                     <ProgressBar Value="{x:Bind ViewModel.ScanProgressPercent, Mode=OneWay}" Maximum="100" Height="6"/>
 
                     <TextBlock

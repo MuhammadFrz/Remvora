@@ -162,10 +162,22 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
                 }
                 else if (Directory.Exists(item.TargetPath))
                 {
-                    long dirSize = item.SizeBytes > 0 ? item.SizeBytes : CalculateDirectorySize(item.TargetPath);
-                    Directory.Delete(item.TargetPath, recursive: true);
-                    removed++;
-                    reclaimedBytes += dirSize;
+                    bool shouldDeleteFolderItself = item.Category == ScanCategory.OrphanedLeftovers;
+                    var (subRemoved, subBytes) = CleanDirectoryContents(item.TargetPath, shouldDeleteFolderItself, _protectedPathsPolicy);
+                    if (subRemoved > 0 || subBytes > 0)
+                    {
+                        removed += subRemoved;
+                        reclaimedBytes += subBytes;
+                    }
+                    else if (shouldDeleteFolderItself)
+                    {
+                        try
+                        {
+                            Directory.Delete(item.TargetPath, recursive: true);
+                            removed++;
+                        }
+                        catch { }
+                    }
                 }
             }
             catch (Exception ex)
@@ -536,6 +548,87 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
 
         var space = trimmed.IndexOf(' ', StringComparison.Ordinal);
         return space > 0 ? trimmed[..space] : trimmed;
+    }
+
+    private static (int Removed, long ReclaimedBytes) CleanDirectoryContents(
+        string folderPath,
+        bool deleteFolderItself,
+        IProtectedPathsPolicy protectedPathsPolicy)
+    {
+        int removed = 0;
+        long reclaimedBytes = 0;
+
+        if (!Directory.Exists(folderPath))
+            return (0, 0);
+
+        var options = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            RecurseSubdirectories = true,
+            ReturnSpecialDirectories = false
+        };
+
+        try
+        {
+            var dirInfo = new DirectoryInfo(folderPath);
+
+            // 1. Clean child files safely
+            foreach (var file in dirInfo.EnumerateFiles("*", options))
+            {
+                if (protectedPathsPolicy.IsPathProtected(file.FullName, out _))
+                    continue;
+
+                try
+                {
+                    long len = file.Length;
+                    if ((file.Attributes & FileAttributes.ReadOnly) != 0)
+                    {
+                        file.Attributes = FileAttributes.Normal;
+                    }
+
+                    file.Delete();
+                    removed++;
+                    reclaimedBytes += len;
+                }
+                catch
+                {
+                    // In-use or locked files skipped
+                }
+            }
+
+            // 2. Clean empty child directories
+            try
+            {
+                foreach (var sub in dirInfo.EnumerateDirectories("*", options))
+                {
+                    try
+                    {
+                        if (sub.Exists && !sub.EnumerateFileSystemInfos().Any())
+                        {
+                            sub.Delete(false);
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+
+            // 3. If requested and safe, delete the root folder itself
+            if (deleteFolderItself)
+            {
+                try
+                {
+                    if (!dirInfo.EnumerateFileSystemInfos().Any())
+                    {
+                        dirInfo.Delete(false);
+                    }
+                }
+                catch { }
+            }
+        }
+        catch { }
+
+        return (removed, reclaimedBytes);
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Beginning deep system scan across all categories")]

@@ -5,6 +5,8 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.IO;
+using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -813,7 +815,17 @@ namespace Remvora.Launcher
                 string status = e.UserState as string;
                 if (status != null)
                 {
-                    _lblInstallStatus.Text = status;
+                    if (status.Contains("|"))
+                    {
+                        string[] parts = status.Split('|');
+                        _lblInstallStatus.Text = parts[0];
+                        _lblInstallFile.Text = parts.Length > 1 ? parts[1] : "";
+                    }
+                    else
+                    {
+                        _lblInstallStatus.Text = status;
+                        _lblInstallFile.Text = "";
+                    }
                 }
             };
             worker.RunWorkerCompleted += (s, e) =>
@@ -841,62 +853,150 @@ namespace Remvora.Launcher
             Directory.CreateDirectory(installDir);
             Directory.CreateDirectory(appInstallDir);
 
-            worker.ReportProgress(10, "Analyzing installation package...");
+            worker.ReportProgress(5, "Analyzing installation package|Initializing self-extracting payload...");
             System.Threading.Thread.Sleep(200);
 
-            // Copy app folder
-            string sourceApp = Path.Combine(_sourceDir, "app");
-            if (!Directory.Exists(sourceApp))
+            Stream payloadStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("RemvoraPayload");
+            if (payloadStream != null)
             {
-                sourceApp = _sourceDir;
-            }
-
-            string[] files = Directory.GetFiles(sourceApp, "*.*", SearchOption.AllDirectories);
-            int totalFiles = files.Length;
-            int copied = 0;
-
-            worker.ReportProgress(20, "Copying core application files...");
-
-            foreach (string file in files)
-            {
-                string rel = file.Substring(sourceApp.Length).TrimStart('\\', '/');
-                string dest = Path.Combine(appInstallDir, rel);
-                string destFolder = Path.GetDirectoryName(dest);
-                if (!Directory.Exists(destFolder))
+                using (payloadStream)
+                using (ZipArchive archive = new ZipArchive(payloadStream, ZipArchiveMode.Read))
                 {
-                    Directory.CreateDirectory(destFolder);
+                    int totalEntries = archive.Entries.Count;
+                    int extracted = 0;
+
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        if (string.IsNullOrEmpty(entry.Name))
+                        {
+                            continue; // Directory entry
+                        }
+
+                        string cleanEntry = entry.FullName.Replace('/', '\\').TrimStart('\\');
+                        string destPath;
+
+                        if (cleanEntry.StartsWith("app\\", StringComparison.OrdinalIgnoreCase))
+                        {
+                            destPath = Path.Combine(installDir, cleanEntry);
+                        }
+                        else if (cleanEntry.Contains("\\"))
+                        {
+                            destPath = Path.Combine(appInstallDir, cleanEntry);
+                        }
+                        else
+                        {
+                            destPath = Path.Combine(installDir, cleanEntry);
+                        }
+
+                        string destFolder = Path.GetDirectoryName(destPath);
+                        if (!Directory.Exists(destFolder))
+                        {
+                            Directory.CreateDirectory(destFolder);
+                        }
+
+                        using (Stream entryStream = entry.Open())
+                        using (FileStream fileStream = File.Create(destPath))
+                        {
+                            entryStream.CopyTo(fileStream);
+                        }
+                        extracted++;
+
+                        int pct = 10 + (int)((float)extracted / totalEntries * 65);
+                        if (extracted % 4 == 0 || extracted == totalEntries)
+                        {
+                            worker.ReportProgress(pct, "Installing Remvora components (" + pct + "%)|Extracting " + entry.Name + " (" + extracted + "/" + totalEntries + ")");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Fallback: Copy app folder from local directory
+                string sourceApp = Path.Combine(_sourceDir, "app");
+                if (!Directory.Exists(sourceApp))
+                {
+                    sourceApp = _sourceDir;
                 }
 
-                File.Copy(file, dest, true);
-                copied++;
+                string[] files = Directory.GetFiles(sourceApp, "*.*", SearchOption.AllDirectories);
+                int totalFiles = files.Length;
+                int copied = 0;
 
-                int pct = 20 + (int)((float)copied / totalFiles * 50);
-                if (copied % 5 == 0 || copied == totalFiles)
+                foreach (string file in files)
                 {
-                    worker.ReportProgress(pct, "Copying application binaries (" + copied + "/" + totalFiles + ")...");
+                    string rel = file.Substring(sourceApp.Length).TrimStart('\\', '/');
+                    string dest = Path.Combine(appInstallDir, rel);
+                    string destFolder = Path.GetDirectoryName(dest);
+                    if (!Directory.Exists(destFolder))
+                    {
+                        Directory.CreateDirectory(destFolder);
+                    }
+
+                    File.Copy(file, dest, true);
+                    copied++;
+
+                    int pct = 10 + (int)((float)copied / totalFiles * 65);
+                    if (copied % 4 == 0 || copied == totalFiles)
+                    {
+                        worker.ReportProgress(pct, "Installing Remvora components (" + pct + "%)|Copying " + Path.GetFileName(file) + " (" + copied + "/" + totalFiles + ")");
+                    }
                 }
             }
 
-            // Copy root launcher and scripts
-            worker.ReportProgress(75, "Setting up launcher and uninstall scripts...");
-            string sourceLauncher = Path.Combine(_sourceDir, "Remvora.exe");
+            // Ensure root launcher Remvora.exe exists
+            worker.ReportProgress(78, "Setting up launcher|Configuring Remvora executable entry point...");
             string targetLauncher = Path.Combine(installDir, "Remvora.exe");
-            if (File.Exists(sourceLauncher))
+            if (!File.Exists(targetLauncher))
             {
-                File.Copy(sourceLauncher, targetLauncher, true);
+                string sourceLauncher = Path.Combine(_sourceDir, "Remvora.exe");
+                if (File.Exists(sourceLauncher))
+                {
+                    File.Copy(sourceLauncher, targetLauncher, true);
+                }
+                else
+                {
+                    try
+                    {
+                        File.Copy(Application.ExecutablePath, targetLauncher, true);
+                    }
+                    catch { }
+                }
             }
 
-            string sourceUninstall = Path.Combine(_sourceDir, "uninstall.ps1");
+            // Ensure uninstall.ps1 exists
+            worker.ReportProgress(82, "Configuring uninstaller|Writing uninstall script...");
             string targetUninstall = Path.Combine(installDir, "uninstall.ps1");
-            if (File.Exists(sourceUninstall))
+            if (!File.Exists(targetUninstall))
             {
-                File.Copy(sourceUninstall, targetUninstall, true);
+                string sourceUninstall = Path.Combine(_sourceDir, "uninstall.ps1");
+                if (File.Exists(sourceUninstall))
+                {
+                    File.Copy(sourceUninstall, targetUninstall, true);
+                }
+                else
+                {
+                    try
+                    {
+                        string defaultUninstallScript =
+                            "# Remvora Uninstaller Script\r\n" +
+                            "Stop-Process -Name \"Remvora.App\" -Force -ErrorAction SilentlyContinue\r\n" +
+                            "Stop-Process -Name \"Remvora\" -Force -ErrorAction SilentlyContinue\r\n" +
+                            "Start-Sleep -Seconds 1\r\n" +
+                            "$installDir = Split-Path -Parent $MyInvocation.MyCommand.Path\r\n" +
+                            "Remove-Item -Path \"$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\Remvora.lnk\" -Force -ErrorAction SilentlyContinue\r\n" +
+                            "Remove-Item -Path \"$env:USERPROFILE\\Desktop\\Remvora.lnk\" -Force -ErrorAction SilentlyContinue\r\n" +
+                            "Remove-Item -Path \"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Remvora\" -Recurse -Force -ErrorAction SilentlyContinue\r\n" +
+                            "Start-Process cmd.exe -ArgumentList \"/c timeout /t 2 & rmdir /s /q `\"$installDir`\"\" -WindowStyle Hidden\r\n";
+                        File.WriteAllText(targetUninstall, defaultUninstallScript, System.Text.Encoding.UTF8);
+                    }
+                    catch { }
+                }
             }
 
             this.InstalledExePath = File.Exists(targetLauncher) ? targetLauncher : Path.Combine(appInstallDir, "Remvora.App.exe");
 
             // Shortcuts
-            worker.ReportProgress(85, "Registering system shortcuts...");
+            worker.ReportProgress(88, "Registering shortcuts|Adding to Start Menu and Desktop...");
 
             if (_chkStartMenu.Checked)
             {

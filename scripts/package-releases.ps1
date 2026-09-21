@@ -63,7 +63,7 @@ foreach ($arch in $Architectures) {
     $setupLauncher = Join-Path $stagingDir "Setup.exe"
     Write-Host "Compiling root launcher Remvora.exe & Setup.exe..." -ForegroundColor Yellow
     if (Test-Path $csc) {
-        & $csc /target:winexe "/win32icon:$iconPath" "/out:$targetLauncher" "$launcherSrc" | Out-Null
+        & $csc /target:winexe /r:System.IO.Compression.dll "/win32icon:$iconPath" "/out:$targetLauncher" "$launcherSrc" | Out-Null
         Copy-Item -Path $targetLauncher -Destination $setupLauncher -Force
     }
 
@@ -87,6 +87,21 @@ foreach ($arch in $Architectures) {
     $fullSize = (Get-Item $zipFilePath).Length
     $checksums += "$hash  $zipFileName"
     Write-Host "Full SHA-256: $hash" -ForegroundColor Gray
+
+    # 6b. Compile Standalone Single-File Installer (Setup.exe containing entire payload embedded)
+    $setupExeName = "Remvora-Setup-v$Version-$arch.exe"
+    $setupExePath = Join-Path $releasesDir $setupExeName
+    if (Test-Path $setupExePath) { Remove-Item -Path $setupExePath -Force }
+    Write-Host "Compiling standalone single-file installer $setupExeName..." -ForegroundColor Green
+    $setupHash = ""
+    $setupSize = 0
+    if (Test-Path $csc) {
+        & $csc /target:winexe /r:System.IO.Compression.dll "/win32icon:$iconPath" "/resource:$zipFilePath,RemvoraPayload" "/out:$setupExePath" "$launcherSrc" | Out-Null
+        $setupHash = (Get-FileHash -Path $setupExePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $setupSize = (Get-Item $setupExePath).Length
+        $checksums += "$setupHash  $setupExeName"
+        Write-Host "Standalone Installer SHA-256: $setupHash ($([math]::Round($setupSize / 1MB, 2)) MB)" -ForegroundColor Gray
+    }
 
     # 7. Create Delta Archive (only Remvora assemblies and assets ~2-3 MB)
     $deltaStagingDir = Join-Path $rootDir "publish\$arch-delta"
@@ -115,6 +130,11 @@ foreach ($arch in $Architectures) {
     Write-Host "Delta SHA-256: $deltaHash ($([math]::Round($deltaSize / 1MB, 2)) MB)" -ForegroundColor Gray
 
     $packagesManifest[$arch] = @{
+        installerExe = @{
+            url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$setupExeName"
+            sha256 = $setupHash
+            sizeBytes = $setupSize
+        }
         fullPackage = @{
             url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$zipFileName"
             sha256 = $hash
@@ -136,7 +156,7 @@ $checksumPath = Join-Path $releasesDir "checksums-sha256.txt"
 $manifestObj = @{
     version = $Version
     releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-    releaseNotes = "- Resolved grid mode phantom items and Windows internal system apps`n- Integrated high-speed Delta Update Center`n- Under 300ms atomic update restart engine"
+    releaseNotes = "- Overhauled System Cleaner with deep scanning and safe file deletion`n- Added real-time progress bar with live percentage and file counters`n- Added standalone single-file installer (Setup.exe) with embedded payload"
     minDeltaVersion = "1.0.0"
     packages = $packagesManifest
 }

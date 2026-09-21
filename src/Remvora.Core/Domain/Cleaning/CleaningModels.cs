@@ -10,8 +10,33 @@ public enum JunkCategory
     WindowsUpdateCache = 3,
     CrashDumps = 4,
     ThumbnailCache = 5,
-    RecycleBin = 6
+    RecycleBin = 6,
+    DirectXCache = 7,
+    DeliveryOptimization = 8,
+    BrowserCache = 9,
+    ErrorReporting = 10
 }
+
+/// <summary>
+/// Granular progress reported during system junk and cache scanning.
+/// </summary>
+public sealed record JunkScanProgress(
+    string CurrentCategory,
+    int ItemsFound,
+    long BytesFound,
+    double PercentComplete,
+    string? CurrentPath = null);
+
+/// <summary>
+/// Granular progress reported during junk and cache cleaning.
+/// </summary>
+public sealed record JunkCleanProgress(
+    string CurrentCategory,
+    string CurrentItem,
+    int CleanedCount,
+    int TotalCount,
+    long BytesReclaimed,
+    double PercentComplete);
 
 /// <summary>
 /// Aggregated group of temporary or junk files identified during system scan.

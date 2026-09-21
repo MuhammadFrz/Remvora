@@ -71,6 +71,24 @@ public sealed partial class CleanerViewModel : ObservableObject
     public partial string StatusMessage { get; set; } = "Ready";
 
     [ObservableProperty]
+    public partial double ProgressPercentage { get; set; }
+
+    [ObservableProperty]
+    public partial string ProgressPercentageText { get; set; } = "0%";
+
+    [ObservableProperty]
+    public partial string CurrentActionDetail { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool IsProgressVisible { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsScanning { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsCleaning { get; set; }
+
+    [ObservableProperty]
     public partial string TotalJunkSizeText { get; set; } = "0 B";
 
     [ObservableProperty]
@@ -110,11 +128,25 @@ public sealed partial class CleanerViewModel : ObservableObject
     public async Task ScanAllAsync()
     {
         IsBusy = true;
-        StatusMessage = "Scanning temporary junk and privacy traces...";
+        IsScanning = true;
+        IsCleaning = false;
+        IsProgressVisible = true;
+        ProgressPercentage = 0;
+        ProgressPercentageText = "0%";
+        StatusMessage = "Starting deep junk scan...";
+        CurrentActionDetail = "Enumerating directories...";
 
         try
         {
-            var junk = await _junkCleaner.ScanJunkAsync();
+            var scanProgress = new Progress<JunkScanProgress>(p =>
+            {
+                ProgressPercentage = p.PercentComplete;
+                ProgressPercentageText = $"{Math.Round(p.PercentComplete)}%";
+                StatusMessage = $"Scanning {p.CurrentCategory}...";
+                CurrentActionDetail = p.CurrentPath ?? $"Found {p.ItemsFound:N0} items ({ApplicationItemViewModel.FormatBytes(p.BytesFound)})";
+            });
+
+            var junk = await _junkCleaner.ScanJunkAsync(scanProgress);
             JunkGroups.Clear();
 
             long totalBytes = 0;
@@ -147,15 +179,20 @@ public sealed partial class CleanerViewModel : ObservableObject
             }
 
             TotalPrivacyTracesText = $"{totalTraces:N0} traces";
-            StatusMessage = $"Scan completed. Found {TotalJunkSizeText} of junk files and {totalTraces} privacy traces.";
+            ProgressPercentage = 100;
+            ProgressPercentageText = "100%";
+            StatusMessage = $"Scan completed. Found {TotalJunkSizeText} in {totalFiles:N0} files and {totalTraces:N0} privacy traces.";
+            CurrentActionDetail = "Ready for cleanup.";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Scan error: {ex.Message}";
+            CurrentActionDetail = string.Empty;
         }
         finally
         {
             IsBusy = false;
+            IsScanning = false;
         }
     }
 
@@ -176,27 +213,45 @@ public sealed partial class CleanerViewModel : ObservableObject
             return;
 
         IsBusy = true;
+        IsCleaning = true;
+        IsScanning = false;
+        IsProgressVisible = true;
+        ProgressPercentage = 0;
+        ProgressPercentageText = "0%";
         StatusMessage = "Cleaning selected junk artifacts...";
+        CurrentActionDetail = "Preparing deletion queue...";
 
         try
         {
-            var progress = new Progress<string>(msg => StatusMessage = msg);
-            var result = await _junkCleaner.CleanJunkAsync(selectedCats, progress);
+            var cleanProgress = new Progress<JunkCleanProgress>(p =>
+            {
+                ProgressPercentage = p.PercentComplete;
+                ProgressPercentageText = $"{Math.Round(p.PercentComplete)}%";
+                StatusMessage = $"Cleaning {p.CurrentCategory} ({p.CleanedCount:N0}/{p.TotalCount:N0})";
+                CurrentActionDetail = $"{p.CurrentItem} • {ApplicationItemViewModel.FormatBytes(p.BytesReclaimed)} reclaimed";
+            });
+
+            var result = await _junkCleaner.CleanJunkAsync(selectedCats, cleanProgress);
 
             if (result.IsSuccess)
             {
                 var freed = ApplicationItemViewModel.FormatBytes(result.Value);
+                ProgressPercentage = 100;
+                ProgressPercentageText = "100%";
                 StatusMessage = $"Cleanup complete! Successfully freed {freed} of disk space.";
+                CurrentActionDetail = $"Reclaimed {freed} on disk.";
                 await ScanAllAsync();
             }
             else
             {
                 StatusMessage = $"Cleanup error: {result.Error?.Message}";
+                CurrentActionDetail = string.Empty;
             }
         }
         finally
         {
             IsBusy = false;
+            IsCleaning = false;
         }
     }
 

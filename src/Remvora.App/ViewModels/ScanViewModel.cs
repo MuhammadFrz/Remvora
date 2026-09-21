@@ -132,6 +132,9 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
     public partial double ScanProgressPercent { get; set; }
 
     [ObservableProperty]
+    public partial string ScanProgressPercentText { get; set; } = "0%";
+
+    [ObservableProperty]
     public partial string CurrentStepText { get; set; } = "Ready to scan";
 
     [ObservableProperty]
@@ -194,6 +197,7 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
             CurrentStepText = report.CurrentStep;
             CurrentTargetText = report.CurrentTarget;
             ScanProgressPercent = report.PercentComplete;
+            ScanProgressPercentText = $"{report.PercentComplete}%";
             TotalFoundCount = report.ItemsFound;
             TotalFoundSizeText = ScanItem.FormatBytes(report.BytesFound);
         });
@@ -214,16 +218,19 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
             CurrentStepText = $"Scan complete. Found {TotalFoundCount} items ({TotalFoundSizeText}).";
             CurrentTargetText = string.Empty;
             ScanProgressPercent = 100;
+            ScanProgressPercentText = "100%";
             UpdateMetrics();
         }
         catch (OperationCanceledException)
         {
-            CurrentStepText = "Scan cancelled by user.";
+            CurrentStepText = "Scan cancelled.";
+            CurrentTargetText = string.Empty;
         }
         catch (Exception ex)
         {
             LogScanError(_logger, ex.Message, ex);
-            CurrentStepText = $"Scan encountered an error: {ex.Message}";
+            CurrentStepText = $"Scan error: {ex.Message}";
+            CurrentTargetText = string.Empty;
         }
         finally
         {
@@ -256,6 +263,7 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
             CurrentStepText = report.CurrentStep;
             CurrentTargetText = report.CurrentTarget;
             ScanProgressPercent = report.PercentComplete;
+            ScanProgressPercentText = $"{report.PercentComplete}%";
         });
 
         try

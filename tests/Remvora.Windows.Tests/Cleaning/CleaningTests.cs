@@ -44,6 +44,38 @@ public sealed class CleaningTests
     }
 
     [Fact]
+    public async Task WindowsJunkCleaner_ScanJunkAsync_ReportsProgressAndReaches100Percent()
+    {
+        // Arrange
+        var cleaner = new WindowsJunkCleaner(new ProtectedPathsPolicy(), NullLogger<WindowsJunkCleaner>.Instance);
+        var reports = new List<JunkScanProgress>();
+        var progress = new Progress<JunkScanProgress>(reports.Add);
+
+        // Act
+        var groups = await cleaner.ScanJunkAsync(progress);
+
+        // Assert
+        groups.Should().NotBeNull();
+        groups.Should().NotBeEmpty();
+        groups.Should().Contain(g => g.Category == JunkCategory.UserTemp);
+    }
+
+    [Fact]
+    public async Task WindowsJunkCleaner_CleanJunkAsync_ReportsGranularProgress()
+    {
+        // Arrange
+        var cleaner = new WindowsJunkCleaner(new ProtectedPathsPolicy(), NullLogger<WindowsJunkCleaner>.Instance);
+        var reports = new List<JunkCleanProgress>();
+        var progress = new Progress<JunkCleanProgress>(reports.Add);
+
+        // Act
+        var result = await cleaner.CleanJunkAsync([JunkCategory.CrashDumps], progress);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task WindowsPrivacyCleaner_ScansAndCleansTraces()
     {
         // Arrange

@@ -8,11 +8,13 @@ namespace Remvora.Application.Cleaning;
 /// </summary>
 public interface IJunkCleaner
 {
-    Task<IReadOnlyList<JunkGroup>> ScanJunkAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<JunkGroup>> ScanJunkAsync(
+        IProgress<JunkScanProgress>? progress = null,
+        CancellationToken cancellationToken = default);
 
     Task<OperationResult<long>> CleanJunkAsync(
         IEnumerable<JunkCategory> selectedCategories,
-        IProgress<string>? progress = null,
+        IProgress<JunkCleanProgress>? progress = null,
         CancellationToken cancellationToken = default);
 }
 

@@ -192,10 +192,33 @@ public sealed partial class GitHubUpdateService : IUpdateService
         {
             LogStartingDownload(_logger, update.DownloadUrl, update.DownloadSizeBytes);
 
-            // 1. Download file with progress
-            if (File.Exists(update.DownloadUrl)) // Local file fallback
+            // 1. Download file with progress (with local package fallback)
+            string? localZip = null;
+            if (File.Exists(update.DownloadUrl))
             {
-                File.Copy(update.DownloadUrl, tempZipPath, overwrite: true);
+                localZip = update.DownloadUrl;
+            }
+            else
+            {
+                var localManifest = ResolveLocalManifestPath();
+                if (File.Exists(localManifest))
+                {
+                    var manifestDir = Path.GetDirectoryName(localManifest);
+                    if (!string.IsNullOrEmpty(manifestDir))
+                    {
+                        var urlFileName = Path.GetFileName(new Uri(update.DownloadUrl, UriKind.RelativeOrAbsolute).LocalPath);
+                        var candidate = Path.Combine(manifestDir, urlFileName);
+                        if (File.Exists(candidate))
+                        {
+                            localZip = candidate;
+                        }
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(localZip) && File.Exists(localZip))
+            {
+                File.Copy(localZip, tempZipPath, overwrite: true);
                 progress?.Report(new UpdateDownloadProgress(update.DownloadSizeBytes, update.DownloadSizeBytes));
             }
             else
@@ -387,6 +410,24 @@ public sealed partial class GitHubUpdateService : IUpdateService
             if (File.Exists(testDirect)) return testDirect;
 
             parent = Directory.GetParent(parent)?.FullName;
+        }
+
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var installedReleases = Path.Combine(localAppData, "Programs", "Remvora", "releases", "manifest.json");
+        if (File.Exists(installedReleases)) return installedReleases;
+
+        var appDataReleases = Path.Combine(localAppData, "Remvora", "releases", "manifest.json");
+        if (File.Exists(appDataReleases)) return appDataReleases;
+
+        string[] devCandidates =
+        [
+            @"D:\Github\Remvora\releases\manifest.json",
+            @"C:\Github\Remvora\releases\manifest.json"
+        ];
+
+        foreach (var candidate in devCandidates)
+        {
+            if (File.Exists(candidate)) return candidate;
         }
 
         return probe;

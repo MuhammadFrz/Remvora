@@ -3,7 +3,11 @@
 [Oo]bj/
 [Oo]ut/
 /publish/
-/releases/
+/releases/*.exe
+/releases/*.zip
+!/releases/manifest.json
+!/releases/checksums-sha256.txt
+!/releases/*.md
 /dist/
 [Ll]og/
 [Ll]ogs/

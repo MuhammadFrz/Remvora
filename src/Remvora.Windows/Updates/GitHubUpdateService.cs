@@ -18,7 +18,14 @@ namespace Remvora.Windows.Updates;
 public sealed partial class GitHubUpdateService : IUpdateService
 {
     private const string DefaultManifestUrl = "https://raw.githubusercontent.com/MuhammadFrz/Remvora/master/releases/manifest.json";
-    private static readonly HttpClient HttpClient = new() { Timeout = TimeSpan.FromSeconds(30) };
+    private static readonly HttpClient HttpClient = CreateHttpClient();
+
+    private static HttpClient CreateHttpClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Remvora-App/1.1.0 (Windows; +https://github.com/MuhammadFrz/Remvora)");
+        return client;
+    }
 
     private readonly ILogger<GitHubUpdateService> _logger;
     private readonly string _manifestUrl;
@@ -43,7 +50,7 @@ public sealed partial class GitHubUpdateService : IUpdateService
         {
             UpdateManifest? manifest = null;
 
-            // 1. Try remote manifest first
+            // 1. Try remote raw manifest first
             try
             {
                 using var response = await HttpClient.GetAsync(_manifestUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -57,7 +64,26 @@ public sealed partial class GitHubUpdateService : IUpdateService
                 LogRemoteManifestFetchFailed(_logger, ex);
             }
 
-            // 2. Fallback to local manifest if developing or offline
+            // 2. Fallback to GitHub Releases API if raw manifest is not yet merged/available
+            if (manifest == null)
+            {
+                try
+                {
+                    const string releasesApiUrl = "https://api.github.com/repos/MuhammadFrz/Remvora/releases/latest";
+                    using var apiResponse = await HttpClient.GetAsync(releasesApiUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    if (apiResponse.IsSuccessStatusCode)
+                    {
+                        var releaseDoc = await apiResponse.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(cancellationToken: cancellationToken).ConfigureAwait(false);
+                        manifest = TryParseManifestFromGitHubRelease(releaseDoc);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogRemoteManifestFetchFailed(_logger, ex);
+                }
+            }
+
+            // 3. Fallback to local manifest if developing or offline
             if (manifest == null)
             {
                 var localManifestPath = ResolveLocalManifestPath();
@@ -339,19 +365,91 @@ public sealed partial class GitHubUpdateService : IUpdateService
     private static string ResolveLocalManifestPath()
     {
         var baseDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
-        // In dev environment: d:\Github\Remvora\releases\manifest.json
         var probe = Path.Combine(baseDir, "releases", "manifest.json");
         if (File.Exists(probe)) return probe;
 
+        var probeDirect = Path.Combine(baseDir, "manifest.json");
+        if (File.Exists(probeDirect)) return probeDirect;
+
         var parent = Directory.GetParent(baseDir)?.FullName;
-        while (!string.IsNullOrEmpty(parent))
+        for (int i = 0; i < 6 && !string.IsNullOrEmpty(parent); i++)
         {
             var testPath = Path.Combine(parent, "releases", "manifest.json");
             if (File.Exists(testPath)) return testPath;
+
+            var testDirect = Path.Combine(parent, "manifest.json");
+            if (File.Exists(testDirect)) return testDirect;
+
             parent = Directory.GetParent(parent)?.FullName;
         }
 
         return probe;
+    }
+
+    private static UpdateManifest? TryParseManifestFromGitHubRelease(System.Text.Json.JsonElement root)
+    {
+        try
+        {
+            if (!root.TryGetProperty("tag_name", out var tagElem)) return null;
+            var tag = tagElem.GetString()?.TrimStart('v', 'V') ?? "1.0.0";
+            var dateStr = root.TryGetProperty("published_at", out var pubElem) ? pubElem.GetString() ?? DateTimeOffset.UtcNow.ToString("O") : DateTimeOffset.UtcNow.ToString("O");
+            var notes = root.TryGetProperty("body", out var bodyElem) ? bodyElem.GetString() ?? string.Empty : string.Empty;
+
+            var packages = new Dictionary<string, UpdatePackageInfo>(StringComparer.OrdinalIgnoreCase);
+
+            if (root.TryGetProperty("assets", out var assetsElem) && assetsElem.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                var assets = assetsElem.EnumerateArray().ToList();
+                string[] archs = ["win-x64", "win-arm64", "win-x86"];
+
+                foreach (var arch in archs)
+                {
+                    UpdateArchiveInfo? fullPkg = null;
+                    UpdateArchiveInfo? deltaPkg = null;
+
+                    foreach (var asset in assets)
+                    {
+                        var name = asset.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                        var url = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() ?? "" : "";
+                        var size = asset.TryGetProperty("size", out var s) ? s.GetInt64() : 0L;
+
+                        if (name.Contains(arch, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (name.EndsWith("-delta.zip", StringComparison.OrdinalIgnoreCase))
+                            {
+                                deltaPkg = new UpdateArchiveInfo { Url = url, Sha256 = string.Empty, SizeBytes = size };
+                            }
+                            else if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                            {
+                                fullPkg = new UpdateArchiveInfo { Url = url, Sha256 = string.Empty, SizeBytes = size };
+                            }
+                        }
+                    }
+
+                    if (fullPkg != null)
+                    {
+                        packages[arch] = new UpdatePackageInfo
+                        {
+                            FullPackage = fullPkg,
+                            DeltaPackage = deltaPkg
+                        };
+                    }
+                }
+            }
+
+            return new UpdateManifest
+            {
+                Version = tag,
+                ReleaseDate = dateStr,
+                ReleaseNotes = notes,
+                MinDeltaVersion = "1.0.0",
+                Packages = packages
+            };
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Checking for updates. Current version: {CurrentVersion}, Manifest URL: {ManifestUrl}")]

@@ -8,7 +8,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.0.0",
+    [string]$Version = "1.1.0",
     [string[]]$Architectures = @("win-x64", "win-arm64", "win-x86")
 )
 

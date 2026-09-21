@@ -9,7 +9,7 @@ namespace Remvora.App.ViewModels;
 
 public sealed partial class JunkGroupViewModel : ObservableObject
 {
-    public JunkGroup Model { get; }
+    public JunkGroup Model { get; private set; }
 
     public JunkCategory Category => Model.Category;
     public string Title => Model.Title;
@@ -28,11 +28,20 @@ public sealed partial class JunkGroupViewModel : ObservableObject
         Model = model ?? throw new ArgumentNullException(nameof(model));
         IsSelected = model.DefaultSelected;
     }
+
+    public void Update(JunkGroup model)
+    {
+        Model = model ?? throw new ArgumentNullException(nameof(model));
+        OnPropertyChanged(nameof(TotalSizeBytes));
+        OnPropertyChanged(nameof(ItemCount));
+        OnPropertyChanged(nameof(SizeFormatted));
+        OnPropertyChanged(nameof(ItemCountFormatted));
+    }
 }
 
 public sealed partial class PrivacyItemViewModel : ObservableObject
 {
-    public PrivacyItem Model { get; }
+    public PrivacyItem Model { get; private set; }
 
     public string Key => Model.Key;
     public string Title => Model.Title;
@@ -48,6 +57,13 @@ public sealed partial class PrivacyItemViewModel : ObservableObject
     {
         Model = model ?? throw new ArgumentNullException(nameof(model));
         IsSelected = model.DefaultSelected;
+    }
+
+    public void Update(PrivacyItem model)
+    {
+        Model = model ?? throw new ArgumentNullException(nameof(model));
+        OnPropertyChanged(nameof(TracesCount));
+        OnPropertyChanged(nameof(CountFormatted));
     }
 }
 
@@ -98,6 +114,18 @@ public sealed partial class CleanerViewModel : ObservableObject
     public partial string TotalPrivacyTracesText { get; set; } = "0 traces";
 
     [ObservableProperty]
+    public partial bool? IsAllJunkSelected { get; set; } = true;
+
+    [ObservableProperty]
+    public partial string JunkSelectionSummaryText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool? IsAllPrivacySelected { get; set; } = true;
+
+    [ObservableProperty]
+    public partial string PrivacySelectionSummaryText { get; set; } = string.Empty;
+
+    [ObservableProperty]
     public partial string SelectedAlgorithm { get; set; } = "DoD 5220.22-M (3 Passes)";
 
     [ObservableProperty]
@@ -142,7 +170,14 @@ public sealed partial class CleanerViewModel : ObservableObject
             {
                 ProgressPercentage = p.PercentComplete;
                 ProgressPercentageText = $"{Math.Round(p.PercentComplete)}%";
-                StatusMessage = $"Scanning {p.CurrentCategory}...";
+                if (p.PercentComplete >= 100 || p.CurrentCategory.StartsWith("Scan Complete", StringComparison.OrdinalIgnoreCase))
+                {
+                    StatusMessage = "Scan completed";
+                }
+                else
+                {
+                    StatusMessage = $"Scanning {p.CurrentCategory}...";
+                }
                 CurrentActionDetail = p.CurrentPath ?? $"Found {p.ItemsFound:N0} items ({ApplicationItemViewModel.FormatBytes(p.BytesFound)})";
             });
 
@@ -165,23 +200,28 @@ public sealed partial class CleanerViewModel : ObservableObject
                 totalFiles += grp.ItemCount;
             }
 
-            TotalJunkSizeText = ApplicationItemViewModel.FormatBytes(totalBytes);
-            TotalJunkFilesText = $"{totalFiles:N0} files";
-
             var privacy = await _privacyCleaner.ScanPrivacyTracesAsync();
             PrivacyItems.Clear();
 
             int totalTraces = 0;
             foreach (var item in privacy)
             {
-                PrivacyItems.Add(new PrivacyItemViewModel(item));
+                var pVm = new PrivacyItemViewModel(item);
+                pVm.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == nameof(PrivacyItemViewModel.IsSelected))
+                        UpdatePrivacyTotals();
+                };
+                PrivacyItems.Add(pVm);
                 totalTraces += item.TracesCount;
             }
 
-            TotalPrivacyTracesText = $"{totalTraces:N0} traces";
+            UpdateJunkTotals();
+            UpdatePrivacyTotals();
+
             ProgressPercentage = 100;
             ProgressPercentageText = "100%";
-            StatusMessage = $"Scan completed. Found {TotalJunkSizeText} in {totalFiles:N0} files and {totalTraces:N0} privacy traces.";
+            StatusMessage = $"Scan completed • Found {TotalJunkSizeText} in {totalFiles:N0} files and {totalTraces:N0} privacy traces.";
             CurrentActionDetail = "Ready for cleanup.";
         }
         catch (Exception ex)
@@ -196,13 +236,114 @@ public sealed partial class CleanerViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    public void SelectAllJunk()
+    {
+        foreach (var grp in JunkGroups)
+        {
+            grp.IsSelected = true;
+        }
+        UpdateJunkTotals();
+    }
+
+    [RelayCommand]
+    public void DeselectAllJunk()
+    {
+        foreach (var grp in JunkGroups)
+        {
+            grp.IsSelected = false;
+        }
+        UpdateJunkTotals();
+    }
+
+    [RelayCommand]
+    public void ToggleSelectAllJunk()
+    {
+        bool targetState = IsAllJunkSelected != true;
+        foreach (var grp in JunkGroups)
+        {
+            grp.IsSelected = targetState;
+        }
+        UpdateJunkTotals();
+    }
+
+    [RelayCommand]
+    public void SelectAllPrivacy()
+    {
+        foreach (var item in PrivacyItems)
+        {
+            item.IsSelected = true;
+        }
+        UpdatePrivacyTotals();
+    }
+
+    [RelayCommand]
+    public void DeselectAllPrivacy()
+    {
+        foreach (var item in PrivacyItems)
+        {
+            item.IsSelected = false;
+        }
+        UpdatePrivacyTotals();
+    }
+
+    [RelayCommand]
+    public void ToggleSelectAllPrivacy()
+    {
+        bool targetState = IsAllPrivacySelected != true;
+        foreach (var item in PrivacyItems)
+        {
+            item.IsSelected = targetState;
+        }
+        UpdatePrivacyTotals();
+    }
+
     private void UpdateJunkTotals()
     {
+        int totalCount = JunkGroups.Count;
+        int selectedCount = JunkGroups.Count(j => j.IsSelected);
         long selectedBytes = JunkGroups.Where(j => j.IsSelected).Sum(j => j.TotalSizeBytes);
         int selectedFiles = JunkGroups.Where(j => j.IsSelected).Sum(j => j.ItemCount);
 
         TotalJunkSizeText = ApplicationItemViewModel.FormatBytes(selectedBytes);
-        TotalJunkFilesText = $"{selectedFiles:N0} files selected";
+        TotalJunkFilesText = $"{selectedFiles:N0} files selected ({selectedCount} of {totalCount} categories)";
+        JunkSelectionSummaryText = $"{selectedCount} of {totalCount} categories selected ({TotalJunkSizeText})";
+
+        if (totalCount == 0 || selectedCount == 0)
+        {
+            IsAllJunkSelected = false;
+        }
+        else if (selectedCount == totalCount)
+        {
+            IsAllJunkSelected = true;
+        }
+        else
+        {
+            IsAllJunkSelected = null;
+        }
+    }
+
+    private void UpdatePrivacyTotals()
+    {
+        int totalCount = PrivacyItems.Count;
+        int selectedCount = PrivacyItems.Count(p => p.IsSelected);
+        int selectedTraces = PrivacyItems.Where(p => p.IsSelected).Sum(p => p.TracesCount);
+
+        TotalPrivacyTracesText = $"{selectedTraces:N0} traces selected ({selectedCount} of {totalCount} categories)";
+        PrivacySelectionSummaryText = $"{selectedCount} of {totalCount} trace categories selected";
+
+        if (totalCount == 0 || selectedCount == 0)
+        {
+            IsAllPrivacySelected = false;
+        }
+        else if (selectedCount == totalCount)
+        {
+            IsAllPrivacySelected = true;
+        }
+        else
+        {
+            IsAllPrivacySelected = null;
+        }
     }
 
     [RelayCommand]
@@ -239,14 +380,36 @@ public sealed partial class CleanerViewModel : ObservableObject
                 ProgressPercentage = 100;
                 ProgressPercentageText = "100%";
                 StatusMessage = $"Cleanup complete! Successfully freed {freed} of disk space.";
-                CurrentActionDetail = $"Reclaimed {freed} on disk.";
-                await ScanAllAsync();
+                CurrentActionDetail = $"Reclaimed {freed} on disk. Selected categories updated.";
+
+                // Re-scan remaining items and update in place so the completion state is not wiped
+                var rescanTargets = await _junkCleaner.ScanJunkAsync().ConfigureAwait(true);
+                var rescanMap = rescanTargets.ToDictionary(r => r.Category);
+
+                foreach (var groupVm in JunkGroups)
+                {
+                    if (rescanMap.TryGetValue(groupVm.Category, out var updatedGroup))
+                    {
+                        groupVm.Update(updatedGroup);
+                        if (selectedCats.Contains(groupVm.Category))
+                        {
+                            groupVm.IsSelected = false;
+                        }
+                    }
+                }
+
+                UpdateJunkTotals();
             }
             else
             {
                 StatusMessage = $"Cleanup error: {result.Error?.Message}";
                 CurrentActionDetail = string.Empty;
             }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Cleanup error: {ex.Message}";
+            CurrentActionDetail = string.Empty;
         }
         finally
         {
@@ -270,13 +433,34 @@ public sealed partial class CleanerViewModel : ObservableObject
             var result = await _privacyCleaner.CleanPrivacyTracesAsync(selectedKeys);
             if (result.IsSuccess)
             {
-                StatusMessage = $"Privacy cleanup complete! Erased {result.Value} history items.";
-                await ScanAllAsync();
+                StatusMessage = $"Privacy cleanup complete! Erased {result.Value} history traces.";
+                CurrentActionDetail = $"Cleared {result.Value} activity items.";
+
+                var rescanPrivacy = await _privacyCleaner.ScanPrivacyTracesAsync().ConfigureAwait(true);
+                var privacyMap = rescanPrivacy.ToDictionary(p => p.Key);
+
+                foreach (var itemVm in PrivacyItems)
+                {
+                    if (privacyMap.TryGetValue(itemVm.Key, out var updatedItem))
+                    {
+                        itemVm.Update(updatedItem);
+                        if (selectedKeys.Contains(itemVm.Key))
+                        {
+                            itemVm.IsSelected = false;
+                        }
+                    }
+                }
+
+                UpdatePrivacyTotals();
             }
             else
             {
                 StatusMessage = $"Privacy cleanup error: {result.Error?.Message}";
             }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Privacy cleanup error: {ex.Message}";
         }
         finally
         {

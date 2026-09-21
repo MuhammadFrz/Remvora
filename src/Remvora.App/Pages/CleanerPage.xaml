@@ -46,8 +46,8 @@
                 <Grid Padding="0,16,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <!-- Summary Card with Visual Storage Graph (Bugs 4 & 6) -->
@@ -121,8 +121,53 @@
                         </Grid>
                     </Border>
 
+                    <!-- Junk Selection Toolbar (Select All / Deselect All) -->
+                    <Grid Grid.Row="1" Margin="4,0,4,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <CheckBox
+                            Content="Select All Categories"
+                            IsChecked="{x:Bind ViewModel.IsAllJunkSelected, Mode=TwoWay}"
+                            Command="{x:Bind ViewModel.ToggleSelectAllJunkCommand}"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center"/>
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="{x:Bind ViewModel.JunkSelectionSummaryText, Mode=OneWay}"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            VerticalAlignment="Center"
+                            Margin="12,0,0,0"/>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                            <Button
+                                Command="{x:Bind ViewModel.SelectAllJunkCommand}"
+                                Style="{ThemeResource SubtleButtonStyle}"
+                                Padding="8,4">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE73A;" FontSize="12"/>
+                                    <TextBlock Text="Select All" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                Command="{x:Bind ViewModel.DeselectAllJunkCommand}"
+                                Style="{ThemeResource SubtleButtonStyle}"
+                                Padding="8,4">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE739;" FontSize="12"/>
+                                    <TextBlock Text="Deselect All" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
                     <!-- Junk Categories List (Bug 6: High Contrast Border) -->
-                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8">
+                    <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8">
                         <ListView ItemsSource="{x:Bind ViewModel.JunkGroups, Mode=OneWay}" SelectionMode="None">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:JunkGroupViewModel">
@@ -159,6 +204,7 @@
                 <Grid Padding="0,16,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -182,8 +228,53 @@
                         </Grid>
                     </Border>
 
+                    <!-- Privacy Selection Toolbar (Select All / Deselect All) -->
+                    <Grid Grid.Row="1" Margin="4,0,4,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <CheckBox
+                            Content="Select All Traces"
+                            IsChecked="{x:Bind ViewModel.IsAllPrivacySelected, Mode=TwoWay}"
+                            Command="{x:Bind ViewModel.ToggleSelectAllPrivacyCommand}"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center"/>
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="{x:Bind ViewModel.PrivacySelectionSummaryText, Mode=OneWay}"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            VerticalAlignment="Center"
+                            Margin="12,0,0,0"/>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                            <Button
+                                Command="{x:Bind ViewModel.SelectAllPrivacyCommand}"
+                                Style="{ThemeResource SubtleButtonStyle}"
+                                Padding="8,4">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE73A;" FontSize="12"/>
+                                    <TextBlock Text="Select All" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                Command="{x:Bind ViewModel.DeselectAllPrivacyCommand}"
+                                Style="{ThemeResource SubtleButtonStyle}"
+                                Padding="8,4">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE739;" FontSize="12"/>
+                                    <TextBlock Text="Deselect All" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
                     <!-- Privacy Items List (Bug 6: High Contrast Border) -->
-                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8">
+                    <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8">
                         <ListView ItemsSource="{x:Bind ViewModel.PrivacyItems, Mode=OneWay}" SelectionMode="None">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:PrivacyItemViewModel">

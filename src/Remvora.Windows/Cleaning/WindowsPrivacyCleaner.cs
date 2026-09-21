@@ -26,77 +26,83 @@ public sealed partial class WindowsPrivacyCleaner : IPrivacyCleaner
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public Task<IReadOnlyList<PrivacyItem>> ScanPrivacyTracesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PrivacyItem>> ScanPrivacyTracesAsync(CancellationToken cancellationToken = default)
     {
-        var items = new List<PrivacyItem>();
-
-        // 1. Recent Documents
-        var recentFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "Recent");
-        int recentCount = 0;
-        if (Directory.Exists(recentFolder))
+        return await Task.Run(() =>
         {
-            try { recentCount = Directory.GetFiles(recentFolder).Length; } catch { }
-        }
-        items.Add(new PrivacyItem("recent_docs", "Recent Files & Documents", "History of opened documents and folders in Windows Explorer", recentCount));
+            var items = new List<PrivacyItem>();
 
-        // 2. Run Dialog History
-        var runValues = _registryAccessor.GetValues(RegistryHive.CurrentUser, RegistryView.Default, RunMruPath);
-        int runCount = runValues?.Count ?? 0;
-        items.Add(new PrivacyItem("run_mru", "Windows Run Dialog History", "Commands and paths entered into the Windows Run prompt (Win+R)", runCount));
+            // 1. Recent Documents
+            var recentFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "Recent");
+            int recentCount = 0;
+            if (Directory.Exists(recentFolder))
+            {
+                try { recentCount = Directory.GetFiles(recentFolder).Length; } catch { }
+            }
+            items.Add(new PrivacyItem("recent_docs", "Recent Files & Documents", "History of opened documents and folders in Windows Explorer", recentCount));
 
-        // 3. Explorer Typed Paths
-        var typedValues = _registryAccessor.GetValues(RegistryHive.CurrentUser, RegistryView.Default, TypedPathsSubKey);
-        int typedCount = typedValues?.Count ?? 0;
-        items.Add(new PrivacyItem("typed_paths", "Explorer Address Bar History", "Directories and locations typed into the File Explorer address bar", typedCount));
+            // 2. Run Dialog History
+            var runValues = _registryAccessor.GetValues(RegistryHive.CurrentUser, RegistryView.Default, RunMruPath);
+            int runCount = runValues?.Count ?? 0;
+            items.Add(new PrivacyItem("run_mru", "Windows Run Dialog History", "Commands and paths entered into the Windows Run prompt (Win+R)", runCount));
 
-        return Task.FromResult<IReadOnlyList<PrivacyItem>>(items);
+            // 3. Explorer Typed Paths
+            var typedValues = _registryAccessor.GetValues(RegistryHive.CurrentUser, RegistryView.Default, TypedPathsSubKey);
+            int typedCount = typedValues?.Count ?? 0;
+            items.Add(new PrivacyItem("typed_paths", "Explorer Address Bar History", "Directories and locations typed into the File Explorer address bar", typedCount));
+
+            return (IReadOnlyList<PrivacyItem>)items;
+        }, cancellationToken).ConfigureAwait(false);
     }
 
-    public Task<OperationResult<int>> CleanPrivacyTracesAsync(
+    public async Task<OperationResult<int>> CleanPrivacyTracesAsync(
         IEnumerable<string> selectedTraceKeys,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(selectedTraceKeys);
 
-        var keys = selectedTraceKeys.ToHashSet();
-        int tracesRemoved = 0;
-
-        // 1. Recent docs
-        if (keys.Contains("recent_docs"))
+        return await Task.Run(() =>
         {
-            var recentFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "Recent");
-            if (Directory.Exists(recentFolder))
+            var keys = selectedTraceKeys.ToHashSet();
+            int tracesRemoved = 0;
+
+            // 1. Recent docs
+            if (keys.Contains("recent_docs"))
             {
-                try
+                var recentFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "Recent");
+                if (Directory.Exists(recentFolder))
                 {
-                    foreach (var file in Directory.GetFiles(recentFolder))
+                    try
                     {
-                        try
+                        foreach (var file in Directory.GetFiles(recentFolder))
                         {
-                            File.Delete(file);
-                            tracesRemoved++;
+                            try
+                            {
+                                File.Delete(file);
+                                tracesRemoved++;
+                            }
+                            catch { }
                         }
-                        catch { }
                     }
+                    catch { }
                 }
-                catch { }
             }
-        }
 
-        // 2. Run MRU
-        if (keys.Contains("run_mru"))
-        {
-            tracesRemoved += ClearRegistryValues(RegistryHive.CurrentUser, RunMruPath);
-        }
+            // 2. Run MRU
+            if (keys.Contains("run_mru"))
+            {
+                tracesRemoved += ClearRegistryValues(RegistryHive.CurrentUser, RunMruPath);
+            }
 
-        // 3. Typed paths
-        if (keys.Contains("typed_paths"))
-        {
-            tracesRemoved += ClearRegistryValues(RegistryHive.CurrentUser, TypedPathsSubKey);
-        }
+            // 3. Typed paths
+            if (keys.Contains("typed_paths"))
+            {
+                tracesRemoved += ClearRegistryValues(RegistryHive.CurrentUser, TypedPathsSubKey);
+            }
 
-        LogPrivacyCleaned(_logger, tracesRemoved);
-        return Task.FromResult(OperationResult.Success(tracesRemoved));
+            LogPrivacyCleaned(_logger, tracesRemoved);
+            return OperationResult.Success(tracesRemoved);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static int ClearRegistryValues(RegistryHive hive, string subKey)

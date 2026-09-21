@@ -42,34 +42,46 @@ public sealed partial class WindowsJunkCleaner : IJunkCleaner
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public Task<IReadOnlyList<JunkGroup>> ScanJunkAsync(
+    public async Task<IReadOnlyList<JunkGroup>> ScanJunkAsync(
         IProgress<JunkScanProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var scanTargets = GetScanTargets();
-        var groups = new List<JunkGroup>();
-        int totalFoundItems = 0;
-        long totalFoundBytes = 0;
-
-        for (int i = 0; i < scanTargets.Count; i++)
+        return await Task.Run(() =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var target = scanTargets[i];
+            var scanTargets = GetScanTargets();
+            var groups = new List<JunkGroup>();
+            int totalFoundItems = 0;
+            long totalFoundBytes = 0;
 
-            double pct = (double)i / scanTargets.Count * 100;
-            progress?.Report(new JunkScanProgress(target.Title, totalFoundItems, totalFoundBytes, pct, target.FolderPath));
+            for (int i = 0; i < scanTargets.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var target = scanTargets[i];
 
-            var group = ScanTargetDirectory(target);
-            groups.Add(group);
+                double pct = (double)i / scanTargets.Count * 100;
+                progress?.Report(new JunkScanProgress(target.Title, totalFoundItems, totalFoundBytes, pct, target.FolderPath));
 
-            totalFoundItems += group.ItemCount;
-            totalFoundBytes += group.TotalSizeBytes;
-        }
+                var group = ScanTargetDirectory(target, (dirCount, dirBytes, currentFile) =>
+                {
+                    progress?.Report(new JunkScanProgress(
+                        target.Title,
+                        totalFoundItems + dirCount,
+                        totalFoundBytes + dirBytes,
+                        pct,
+                        currentFile));
+                }, cancellationToken);
 
-        progress?.Report(new JunkScanProgress("Scan Complete", totalFoundItems, totalFoundBytes, 100));
-        LogScanCompleted(_logger, totalFoundItems, totalFoundBytes);
+                groups.Add(group);
 
-        return Task.FromResult<IReadOnlyList<JunkGroup>>(groups);
+                totalFoundItems += group.ItemCount;
+                totalFoundBytes += group.TotalSizeBytes;
+            }
+
+            progress?.Report(new JunkScanProgress("Scan Completed", totalFoundItems, totalFoundBytes, 100));
+            LogScanCompleted(_logger, totalFoundItems, totalFoundBytes);
+
+            return (IReadOnlyList<JunkGroup>)groups;
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static List<JunkTargetSpec> GetScanTargets()
@@ -121,7 +133,10 @@ public sealed partial class WindowsJunkCleaner : IJunkCleaner
         return targets;
     }
 
-    private static JunkGroup ScanTargetDirectory(JunkTargetSpec spec)
+    private static JunkGroup ScanTargetDirectory(
+        JunkTargetSpec spec,
+        Action<int, long, string>? onProgress = null,
+        CancellationToken cancellationToken = default)
     {
         if (!Directory.Exists(spec.FolderPath))
         {
@@ -130,16 +145,26 @@ public sealed partial class WindowsJunkCleaner : IJunkCleaner
 
         var filesList = new List<string>();
         long totalBytes = 0;
+        int fileCount = 0;
 
         try
         {
             var dirInfo = new DirectoryInfo(spec.FolderPath);
             foreach (var file in dirInfo.EnumerateFiles("*", SafeEnumOptions))
             {
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+
                 try
                 {
                     filesList.Add(file.FullName);
                     totalBytes += file.Length;
+                    fileCount++;
+
+                    if (fileCount % 30 == 0 || fileCount <= 5)
+                    {
+                        onProgress?.Invoke(fileCount, totalBytes, file.FullName);
+                    }
                 }
                 catch
                 {
@@ -162,86 +187,100 @@ public sealed partial class WindowsJunkCleaner : IJunkCleaner
     {
         ArgumentNullException.ThrowIfNull(selectedCategories);
 
-        var groups = await ScanJunkAsync(null, cancellationToken).ConfigureAwait(false);
-        var targetCategories = selectedCategories.ToHashSet();
-
-        var selectedGroups = groups.Where(g => targetCategories.Contains(g.Category)).ToList();
-        var allFiles = selectedGroups.SelectMany(g => g.FilePaths.Select(f => (Category: g.Title, Path: f))).ToList();
-        int totalFiles = allFiles.Count;
-
-        long reclaimedBytes = 0;
-        int cleanedCount = 0;
-
-        for (int i = 0; i < totalFiles; i++)
+        return await Task.Run(async () =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var item = allFiles[i];
+            var groups = await ScanJunkAsync(null, cancellationToken).ConfigureAwait(false);
+            var targetCategories = selectedCategories.ToHashSet();
 
-            double pct = totalFiles > 0 ? (double)(i + 1) / totalFiles * 100 : 100;
+            var selectedGroups = groups.Where(g => targetCategories.Contains(g.Category)).ToList();
+            var allFiles = selectedGroups.SelectMany(g => g.FilePaths.Select(f => (Category: g.Title, Path: f))).ToList();
+            int totalFiles = allFiles.Count;
+
+            long reclaimedBytes = 0;
+            int cleanedCount = 0;
+
+            for (int i = 0; i < totalFiles; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var item = allFiles[i];
+
+                double pct = totalFiles > 0 ? (double)(i + 1) / totalFiles * 100 : 100;
+                if (i % 10 == 0 || i == totalFiles - 1 || i < 5)
+                {
+                    progress?.Report(new JunkCleanProgress(
+                        item.Category,
+                        Path.GetFileName(item.Path),
+                        cleanedCount,
+                        totalFiles,
+                        reclaimedBytes,
+                        pct));
+                }
+
+                // Safety check: Never delete a protected system path
+                if (_protectedPathsPolicy.IsPathProtected(item.Path, out _))
+                    continue;
+
+                try
+                {
+                    var fi = new FileInfo(item.Path);
+                    if (fi.Exists)
+                    {
+                        long len = fi.Length;
+                        if ((fi.Attributes & FileAttributes.ReadOnly) != 0)
+                        {
+                            fi.Attributes = FileAttributes.Normal;
+                        }
+
+                        fi.Delete();
+                        reclaimedBytes += len;
+                        cleanedCount++;
+                    }
+                }
+                catch
+                {
+                    // Locked or in-use files are skipped without aborting
+                }
+            }
+
+            // Clean empty child directories within scanned folders (preserving the root folder itself)
+            foreach (var target in GetScanTargets().Where(t => targetCategories.Contains(t.Category)))
+            {
+                if (Directory.Exists(target.FolderPath))
+                {
+                    CleanEmptySubdirectories(target.FolderPath);
+                }
+            }
+
             progress?.Report(new JunkCleanProgress(
-                item.Category,
-                Path.GetFileName(item.Path),
+                "Cleanup Completed",
+                "Finished",
                 cleanedCount,
                 totalFiles,
                 reclaimedBytes,
-                pct));
+                100));
 
-            // Safety check: Never delete a protected system path
-            if (_protectedPathsPolicy.IsPathProtected(item.Path, out _))
-                continue;
-
-            try
+            // Record in lifetime statistics if repository is provided
+            if (_statsRepository != null && (cleanedCount > 0 || reclaimedBytes > 0))
             {
-                var fi = new FileInfo(item.Path);
-                if (fi.Exists)
+                try
                 {
-                    long len = fi.Length;
-                    if ((fi.Attributes & FileAttributes.ReadOnly) != 0)
-                    {
-                        fi.Attributes = FileAttributes.Normal;
-                    }
-
-                    fi.Delete();
-                    reclaimedBytes += len;
-                    cleanedCount++;
+                    await _statsRepository.RecordEventAsync(new CleaningStatEvent(
+                        Guid.NewGuid(),
+                        DateTimeOffset.UtcNow,
+                        CleaningCategory.SystemJunk,
+                        cleanedCount,
+                        reclaimedBytes,
+                        $"Cleaned {cleanedCount} junk files across {selectedGroups.Count} categories."), cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Non-critical metric failure
                 }
             }
-            catch
-            {
-                // Locked or in-use files are skipped without aborting
-            }
-        }
 
-        // Clean empty child directories within scanned folders (preserving the root folder itself)
-        foreach (var target in GetScanTargets().Where(t => targetCategories.Contains(t.Category)))
-        {
-            if (Directory.Exists(target.FolderPath))
-            {
-                CleanEmptySubdirectories(target.FolderPath);
-            }
-        }
-
-        // Record in lifetime statistics if repository is provided
-        if (_statsRepository != null && (cleanedCount > 0 || reclaimedBytes > 0))
-        {
-            try
-            {
-                await _statsRepository.RecordEventAsync(new CleaningStatEvent(
-                    Guid.NewGuid(),
-                    DateTimeOffset.UtcNow,
-                    CleaningCategory.SystemJunk,
-                    cleanedCount,
-                    reclaimedBytes,
-                    $"Cleaned {cleanedCount} junk files across {selectedGroups.Count} categories."), cancellationToken).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Non-critical metric failure
-            }
-        }
-
-        LogJunkCleaned(_logger, reclaimedBytes, cleanedCount);
-        return OperationResult.Success(reclaimedBytes);
+            LogJunkCleaned(_logger, reclaimedBytes, cleanedCount);
+            return OperationResult.Success(reclaimedBytes);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static void CleanEmptySubdirectories(string rootFolder)

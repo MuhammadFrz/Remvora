@@ -738,7 +738,7 @@ namespace Remvora.Launcher
 
             Label lblVersion = new Label
             {
-                Text = "• Version: 1.0.0 (Windows 11 Native)",
+                Text = "• Version: 1.1.0 (Windows 11 Native)",
                 Location = new Point(18, 62),
                 Size = new Size(456, 20),
                 Font = new Font("Segoe UI", 8.5F),
@@ -1032,7 +1032,7 @@ namespace Remvora.Launcher
                         if (key != null)
                         {
                             key.SetValue("DisplayName", "Remvora");
-                            key.SetValue("DisplayVersion", "1.0.0");
+                            key.SetValue("DisplayVersion", "1.1.0");
                             key.SetValue("Publisher", "Remvora");
                             key.SetValue("InstallLocation", installDir);
                             key.SetValue("DisplayIcon", this.InstalledExePath);

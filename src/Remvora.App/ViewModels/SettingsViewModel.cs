@@ -12,7 +12,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private UpdateCheckResult? _currentUpdate;
 
     [ObservableProperty]
-    public partial string CurrentVersion { get; set; } = "1.0.0";
+    public partial string CurrentVersion { get; set; } = "1.1.0";
 
     [ObservableProperty]
     public partial bool IsCheckingForUpdates { get; set; }

@@ -120,7 +120,7 @@ Remvora natively targets all primary Windows hardware architectures:
 When an end-user downloads and extracts any of the release archives, the root folder is clean and free of loose DLL clutter:
 
 ```
-Remvora-v1.0.0-win-x64/
+Remvora-v1.1.0-win-x64/
 ├── Remvora.exe        # Clean root launcher with embedded high-resolution icon
 ├── install.ps1        # Turnkey PowerShell installer with Start Menu & registry integration
 ├── uninstall.ps1      # Clean uninstaller script
@@ -134,7 +134,7 @@ Remvora-v1.0.0-win-x64/
 
 Generate all clean release zip archives locally in one command:
 ```powershell
-.\scripts\package-releases.ps1 -Version "1.0.0"
+.\scripts\package-releases.ps1 -Version "1.1.0"
 ```
 This packages each architecture into the `/releases` directory accompanied by `checksums-sha256.txt`.
 

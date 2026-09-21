@@ -1,0 +1,34 @@
+## Visual Studio & .NET
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+*.suo
+*.userprefs
+TestResults/
+*.DotSettings.user
+
+## Package caches
+packages/
+*.nupkg
+*.snupkg
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## SQLite local databases
+*.db
+*.db-shm
+*.db-wal
+
+## OS & temporary files
+*.tmp
+*.temp

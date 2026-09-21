@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Remvora.Core\Remvora.Core.csproj" />
+    <ProjectReference Include="..\Remvora.Contracts\Remvora.Contracts.csproj" />
+    <ProjectReference Include="..\Remvora.Application\Remvora.Application.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

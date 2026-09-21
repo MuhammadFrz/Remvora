@@ -77,7 +77,11 @@ $RECYCLE.BIN/
 *.tmp
 *.temp
 
-## AI / Assistant Local Artifacts
+## AI / Assistant Local Artifacts & Specs
 .gemini/
 .agents/
 scratch/
+MASTER_AGENT_PROMPT.md
+windows_uninstaller_implementation_plan.txt
+docs/specs/
+

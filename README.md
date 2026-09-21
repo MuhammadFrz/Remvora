@@ -78,7 +78,6 @@ Remvora/
 │       └── release.yml        # Multi-architecture automated release publisher
 ├── docs/                      # Comprehensive engineering documentation & assets
 │   ├── assets/                # High-resolution logos, emblems, and media
-│   ├── specs/                 # Original technical specifications & plans
 │   ├── architecture.md        # Architectural blueprint and subsystem layers
 │   ├── decisions.md           # Architecture Decision Records (ADRs)
 │   ├── safety-model.md        # System protection and privilege boundary model

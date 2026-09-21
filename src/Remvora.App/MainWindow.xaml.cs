@@ -48,6 +48,9 @@ public sealed partial class MainWindow : Window
                 case "apps":
                     NavFrame.Navigate(typeof(AppsPage));
                     break;
+                case "monitor":
+                    NavFrame.Navigate(typeof(InstallMonitorPage));
+                    break;
                 case "winapps":
                     NavFrame.Navigate(typeof(WindowsAppsPage));
                     break;

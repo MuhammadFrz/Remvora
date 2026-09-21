@@ -22,6 +22,7 @@ public partial class App : Microsoft.UI.Xaml.Application
     private Window? _window;
 
     public static IServiceProvider Services { get; private set; } = null!;
+    public static Window? MainWindowInstance { get; private set; }
 
     public App()
     {
@@ -36,6 +37,7 @@ public partial class App : Microsoft.UI.Xaml.Application
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         _window = new MainWindow();
+        MainWindowInstance = _window;
         _window.Activate();
     }
 
@@ -113,6 +115,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Windows Tools Hub & Hunter Mode Services
         services.AddSingleton<Remvora.Application.Tools.IWindowsToolsService, Remvora.Windows.Tools.WindowsToolsService>();
         services.AddSingleton<Remvora.Application.Hunter.IHunterModeService, Remvora.Windows.Hunter.WindowsHunterModeService>();
+        services.AddSingleton<Remvora.Application.Monitoring.IInstallationMonitorService, Remvora.Windows.Monitoring.WindowsInstallationMonitorService>();
 
         // ViewModels
         services.AddTransient<AppsViewModel>();
@@ -124,6 +127,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddTransient<HunterViewModel>();
         services.AddTransient<WindowsToolsViewModel>();
         services.AddTransient<AuditLogViewModel>();
+        services.AddTransient<InstallMonitorViewModel>();
 
         return services.BuildServiceProvider();
     }

@@ -132,20 +132,20 @@ foreach ($arch in $Architectures) {
     Write-Host "Delta SHA-256: $deltaHash ($([math]::Round($deltaSize / 1MB, 2)) MB)" -ForegroundColor Gray
 
     $packagesManifest[$arch] = @{
-        installerExe = @{
-            url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$setupExeName"
-            sha256 = $setupHash
-            sizeBytes = $setupSize
+        InstallerExe = @{
+            Url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$setupExeName"
+            Sha256 = $setupHash
+            SizeBytes = $setupSize
         }
-        fullPackage = @{
-            url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$zipFileName"
-            sha256 = $hash
-            sizeBytes = $fullSize
+        FullPackage = @{
+            Url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$zipFileName"
+            Sha256 = $hash
+            SizeBytes = $fullSize
         }
-        deltaPackage = @{
-            url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$deltaZipName"
-            sha256 = $deltaHash
-            sizeBytes = $deltaSize
+        DeltaPackage = @{
+            Url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$deltaZipName"
+            Sha256 = $deltaHash
+            SizeBytes = $deltaSize
         }
     }
 }
@@ -156,11 +156,11 @@ $checksumPath = Join-Path $releasesDir "checksums-sha256.txt"
 
 # 9. Write manifest.json
 $manifestObj = @{
-    version = $Version
-    releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-    releaseNotes = "- Overhauled System Cleaner with deep scanning and safe file deletion`n- Added real-time progress bar with live percentage and file counters`n- Added standalone single-file installer (Setup.exe) with embedded payload"
-    minDeltaVersion = "1.0.0"
-    packages = $packagesManifest
+    Version = $Version
+    ReleaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    ReleaseNotes = "- Overhauled System Cleaner with deep scanning and safe file deletion`n- Added real-time progress bar with live percentage and file counters`n- Added standalone single-file installer (Setup.exe) with embedded payload"
+    MinDeltaVersion = "1.0.0"
+    Packages = $packagesManifest
 }
 $manifestJson = $manifestObj | ConvertTo-Json -Depth 6
 $manifestPath = Join-Path $releasesDir "manifest.json"

@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Remvora.Application.Updates;
 using Remvora.Contracts;
@@ -19,6 +20,7 @@ public sealed partial class GitHubUpdateService : IUpdateService
 {
     private const string DefaultManifestUrl = "https://raw.githubusercontent.com/MuhammadFrz/Remvora/master/releases/manifest.json";
     private static readonly HttpClient HttpClient = CreateHttpClient();
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     private static HttpClient CreateHttpClient()
     {
@@ -90,7 +92,7 @@ public sealed partial class GitHubUpdateService : IUpdateService
                 if (File.Exists(localManifestPath))
                 {
                     using var stream = File.OpenRead(localManifestPath);
-                    manifest = await System.Text.Json.JsonSerializer.DeserializeAsync<UpdateManifest>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    manifest = await System.Text.Json.JsonSerializer.DeserializeAsync<UpdateManifest>(stream, JsonOptions, cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -133,11 +135,21 @@ public sealed partial class GitHubUpdateService : IUpdateService
                 };
             }
 
+            if (packageInfo.FullPackage == null && packageInfo.DeltaPackage == null)
+            {
+                return new UpdateCheckResult
+                {
+                    IsUpdateAvailable = false,
+                    CurrentVersion = currentVersionStr,
+                    ErrorMessage = $"No download packages found for architecture '{arch}' in manifest."
+                };
+            }
+
             // Check if delta is eligible
             var isDeltaAvailable = false;
-            UpdateArchiveInfo targetArchive = packageInfo.FullPackage;
+            UpdateArchiveInfo targetArchive = packageInfo.FullPackage ?? packageInfo.DeltaPackage!;
 
-            if (packageInfo.DeltaPackage != null)
+            if (packageInfo.DeltaPackage != null && packageInfo.FullPackage != null)
             {
                 if (string.IsNullOrWhiteSpace(manifest.MinDeltaVersion) ||
                     currentVer >= ParseVersion(manifest.MinDeltaVersion))

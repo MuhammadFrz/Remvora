@@ -5,9 +5,9 @@ namespace Remvora.Contracts.Updates;
 /// </summary>
 public sealed record UpdateManifest
 {
-    public required string Version { get; init; }
-    public required string ReleaseDate { get; init; }
-    public required string ReleaseNotes { get; init; }
+    public string Version { get; init; } = string.Empty;
+    public string ReleaseDate { get; init; } = string.Empty;
+    public string ReleaseNotes { get; init; } = string.Empty;
     public string? MinDeltaVersion { get; init; }
     public Dictionary<string, UpdatePackageInfo> Packages { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public List<FileManifestEntry> Files { get; init; } = [];
@@ -18,8 +18,9 @@ public sealed record UpdateManifest
 /// </summary>
 public sealed record UpdatePackageInfo
 {
-    public required UpdateArchiveInfo FullPackage { get; init; }
+    public UpdateArchiveInfo? FullPackage { get; init; }
     public UpdateArchiveInfo? DeltaPackage { get; init; }
+    public UpdateArchiveInfo? InstallerExe { get; init; }
 }
 
 /// <summary>
@@ -27,9 +28,9 @@ public sealed record UpdatePackageInfo
 /// </summary>
 public sealed record UpdateArchiveInfo
 {
-    public required string Url { get; init; }
-    public required string Sha256 { get; init; }
-    public required long SizeBytes { get; init; }
+    public string Url { get; init; } = string.Empty;
+    public string Sha256 { get; init; } = string.Empty;
+    public long SizeBytes { get; init; }
 }
 
 /// <summary>

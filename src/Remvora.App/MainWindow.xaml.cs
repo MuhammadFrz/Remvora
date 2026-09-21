@@ -11,9 +11,22 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
-        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        try
+        {
+            if (AppWindowTitleBar.IsCustomizationSupported())
+            {
+                ExtendsContentIntoTitleBar = true;
+                SetTitleBar(AppTitleBar);
+                if (AppWindow?.TitleBar != null)
+                {
+                    AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"TitleBar configuration fallback: {ex.Message}");
+        }
 
         // Navigate to Dashboard initially
         NavFrame.Navigate(typeof(DashboardPage));

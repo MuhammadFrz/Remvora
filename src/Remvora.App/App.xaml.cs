@@ -26,19 +26,74 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public App()
     {
-        InitializeComponent();
-        Services = ConfigureServices();
+        this.UnhandledException += App_UnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
-        // Run SQLite forward migrations on startup
-        var migrator = Services.GetRequiredService<DatabaseMigrator>();
-        migrator.Migrate();
+        try
+        {
+            InitializeComponent();
+            Services = ConfigureServices();
+
+            // Run SQLite forward migrations on startup
+            var migrator = Services.GetRequiredService<DatabaseMigrator>();
+            migrator.Migrate();
+        }
+        catch (Exception ex)
+        {
+            LogFatalCrash("App Constructor", ex);
+            throw;
+        }
     }
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        MainWindowInstance = _window;
-        _window.Activate();
+        try
+        {
+            _window = new MainWindow();
+            MainWindowInstance = _window;
+            _window.Activate();
+        }
+        catch (Exception ex)
+        {
+            LogFatalCrash("OnLaunched", ex);
+            throw;
+        }
+    }
+
+    private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    {
+        LogFatalCrash("WinUI UnhandledException", e.Exception);
+    }
+
+    private static void CurrentDomain_UnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex)
+        {
+            LogFatalCrash("CurrentDomain UnhandledException", ex);
+        }
+    }
+
+    private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        LogFatalCrash("TaskScheduler UnobservedTaskException", e.Exception);
+        e.SetObserved();
+    }
+
+    private static void LogFatalCrash(string source, Exception ex)
+    {
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var logDir = Path.Combine(localAppData, "Remvora");
+            Directory.CreateDirectory(logDir);
+            var logPath = Path.Combine(logDir, "crash.log");
+            File.AppendAllText(logPath, $"[{DateTime.UtcNow:O}] [{source}] {ex.GetType().FullName}: {ex.Message}\r\n{ex.StackTrace}\r\n\r\n");
+        }
+        catch
+        {
+            // Logging failure ignored
+        }
     }
 
     private static ServiceProvider ConfigureServices()

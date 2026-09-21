@@ -57,11 +57,13 @@ foreach ($arch in $Architectures) {
         --self-contained `
         -o $appStagingDir
 
-    # 3. Compile clean root launcher Remvora.exe
+    # 3. Compile clean root launcher Remvora.exe and Setup.exe alias
     $targetLauncher = Join-Path $stagingDir "Remvora.exe"
-    Write-Host "Compiling root launcher Remvora.exe..." -ForegroundColor Yellow
+    $setupLauncher = Join-Path $stagingDir "Setup.exe"
+    Write-Host "Compiling root launcher Remvora.exe & Setup.exe..." -ForegroundColor Yellow
     if (Test-Path $csc) {
         & $csc /target:winexe "/win32icon:$iconPath" "/out:$targetLauncher" "$launcherSrc" | Out-Null
+        Copy-Item -Path $targetLauncher -Destination $setupLauncher -Force
     }
 
     # 4. Copy installation and uninstallation scripts to root

@@ -10,6 +10,7 @@ using Remvora.Infrastructure.Repositories;
 using Remvora.Windows.Msi;
 using Remvora.Windows.Packages;
 using Remvora.Windows.Registry;
+using Remvora.Application.Workflows;
 
 namespace Remvora.App;
 
@@ -64,11 +65,22 @@ public partial class App : Microsoft.UI.Xaml.Application
 
         // Application Services
         services.AddSingleton<IApplicationDiscoveryService, ApplicationDiscoveryService>();
+        services.AddSingleton<IUninstallOrchestrator, Remvora.Application.Workflows.UninstallOrchestrator>();
+
+        // Processes & System Restore
+        services.AddSingleton<Remvora.Application.Processes.IProcessDetector, Remvora.Windows.Processes.WindowsProcessDetector>();
+        services.AddSingleton<Remvora.Application.RestorePoint.IRestorePointService, Remvora.Windows.RestorePoint.WindowsRestorePointService>();
+
+        // Uninstall Strategies
+        services.AddSingleton<Remvora.Application.Uninstall.IUninstallStrategy, Remvora.Windows.Uninstall.MsiUninstallStrategy>();
+        services.AddSingleton<Remvora.Application.Uninstall.IUninstallStrategy, Remvora.Windows.Uninstall.RegistryCommandStrategy>();
+        services.AddSingleton<Remvora.Application.Uninstall.IUninstallStrategy, Remvora.Windows.Uninstall.PackageUninstallStrategy>();
 
         // Persistence
         services.AddSingleton<IDbConnectionFactory, SqliteConnectionFactory>();
         services.AddSingleton<DatabaseMigrator>();
         services.AddSingleton<IApplicationRepository, SqliteApplicationRepository>();
+        services.AddSingleton<Remvora.Application.Auditing.IAuditLogRepository, SqliteAuditLogRepository>();
 
         // ViewModels
         services.AddTransient<AppsViewModel>();

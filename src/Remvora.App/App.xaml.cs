@@ -81,6 +81,9 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<Remvora.Application.Processes.IProcessDetector, Remvora.Windows.Processes.WindowsProcessDetector>();
         services.AddSingleton<Remvora.Application.RestorePoint.IRestorePointService, Remvora.Windows.RestorePoint.WindowsRestorePointService>();
 
+        // Elevated Worker Client
+        services.AddSingleton<Remvora.Application.Elevation.IElevatedWorkerClient, Remvora.Windows.Elevation.ElevatedWorkerClient>();
+
         // Uninstall Strategies
         services.AddSingleton<Remvora.Application.Uninstall.IUninstallStrategy, Remvora.Windows.Uninstall.MsiUninstallStrategy>();
         services.AddSingleton<Remvora.Application.Uninstall.IUninstallStrategy, Remvora.Windows.Uninstall.RegistryCommandStrategy>();

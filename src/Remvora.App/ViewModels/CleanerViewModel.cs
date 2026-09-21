@@ -307,7 +307,7 @@ public sealed partial class CleanerViewModel : ObservableObject
 
         TotalJunkSizeText = ApplicationItemViewModel.FormatBytes(selectedBytes);
         TotalJunkFilesText = $"{selectedFiles:N0} files selected ({selectedCount} of {totalCount} categories)";
-        JunkSelectionSummaryText = $"{selectedCount} of {totalCount} categories selected ({TotalJunkSizeText})";
+        JunkSelectionSummaryText = $"({selectedCount} of {totalCount} categories • {TotalJunkSizeText})";
 
         if (totalCount == 0 || selectedCount == 0)
         {
@@ -330,7 +330,7 @@ public sealed partial class CleanerViewModel : ObservableObject
         int selectedTraces = PrivacyItems.Where(p => p.IsSelected).Sum(p => p.TracesCount);
 
         TotalPrivacyTracesText = $"{selectedTraces:N0} traces selected ({selectedCount} of {totalCount} categories)";
-        PrivacySelectionSummaryText = $"{selectedCount} of {totalCount} trace categories selected";
+        PrivacySelectionSummaryText = $"({selectedCount} of {totalCount} trace categories • {selectedTraces:N0} traces)";
 
         if (totalCount == 0 || selectedCount == 0)
         {

@@ -130,8 +130,18 @@ $displayIcon = if (Test-Path (Join-Path $appInstallDir "Assets\AppIcon.ico")) {
     $primaryExe
 }
 
+$detectedVersion = "1.2.0"
+if (Test-Path $primaryExe) {
+    try {
+        $fileVer = (Get-Item $primaryExe).VersionInfo.ProductVersion
+        if (-not [string]::IsNullOrWhiteSpace($fileVer)) {
+            $detectedVersion = $fileVer.Split('+')[0]
+        }
+    } catch {}
+}
+
 Set-ItemProperty -Path $uninstallRegKey -Name "DisplayName" -Value "Remvora"
-Set-ItemProperty -Path $uninstallRegKey -Name "DisplayVersion" -Value "1.1.0"
+Set-ItemProperty -Path $uninstallRegKey -Name "DisplayVersion" -Value $detectedVersion
 Set-ItemProperty -Path $uninstallRegKey -Name "Publisher" -Value "Remvora"
 Set-ItemProperty -Path $uninstallRegKey -Name "InstallLocation" -Value $installDir
 Set-ItemProperty -Path $uninstallRegKey -Name "DisplayIcon" -Value $displayIcon

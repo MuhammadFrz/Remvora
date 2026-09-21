@@ -11,7 +11,7 @@
   <Identity
     Name="91218DF4-5550-4252-B4E4-91095AE42EF3"
     Publisher="CN=Remvora"
-    Version="1.1.0.0" />
+    Version="1.2.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="91218DF4-5550-4252-B4E4-91095AE42EF3" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

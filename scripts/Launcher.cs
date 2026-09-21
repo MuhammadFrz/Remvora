@@ -11,6 +11,14 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
+[assembly: AssemblyTitle("Remvora")]
+[assembly: AssemblyProduct("Remvora")]
+[assembly: AssemblyCompany("Remvora")]
+[assembly: AssemblyCopyright("Copyright © 2026 Remvora")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyInformationalVersion("1.2.0")]
+
 namespace Remvora.Launcher
 {
     internal static class Program
@@ -252,6 +260,38 @@ namespace Remvora.Launcher
                 elapsed += 200;
             }
         }
+
+        public const string FallbackVersion = "1.2.0";
+
+        public static string GetAppVersion(string targetExe = null)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(targetExe) && File.Exists(targetExe))
+                {
+                    FileVersionInfo fv = FileVersionInfo.GetVersionInfo(targetExe);
+                    if (!string.IsNullOrEmpty(fv.ProductVersion))
+                    {
+                        string v = fv.ProductVersion;
+                        int plus = v.IndexOf('+');
+                        return plus > 0 ? v.Substring(0, plus) : v;
+                    }
+                }
+            }
+            catch { }
+
+            try
+            {
+                Version asmVer = Assembly.GetExecutingAssembly().GetName().Version;
+                if (asmVer != null && asmVer.Major > 0)
+                {
+                    return asmVer.Major + "." + asmVer.Minor + "." + asmVer.Build;
+                }
+            }
+            catch { }
+
+            return FallbackVersion;
+        }
     }
 
     /// <summary>
@@ -295,6 +335,7 @@ namespace Remvora.Launcher
         private ModernProgressBar _progressBar;
 
         // Step 3 Controls
+        private Label _lblVersion;
         private CheckBox _chkLaunch;
 
         public bool ShouldLaunchAfterExit { get; private set; }
@@ -736,15 +777,15 @@ namespace Remvora.Launcher
             };
             card.Controls.Add(lblPath);
 
-            Label lblVersion = new Label
+            _lblVersion = new Label
             {
-                Text = "• Version: 1.1.0 (Windows 11 Native)",
+                Text = "• Version: " + Program.GetAppVersion(_sourceExe) + " (Windows 11 Native)",
                 Location = new Point(18, 62),
                 Size = new Size(456, 20),
                 Font = new Font("Segoe UI", 8.5F),
                 ForeColor = _textSecondary
             };
-            card.Controls.Add(lblVersion);
+            card.Controls.Add(_lblVersion);
 
             Panel divider = new Panel
             {
@@ -841,6 +882,10 @@ namespace Remvora.Launcher
                 }
                 else
                 {
+                    if (_lblVersion != null)
+                    {
+                        _lblVersion.Text = "• Version: " + Program.GetAppVersion(this.InstalledExePath) + " (Windows 11 Native)";
+                    }
                     ShowView(3);
                 }
             };
@@ -1032,7 +1077,7 @@ namespace Remvora.Launcher
                         if (key != null)
                         {
                             key.SetValue("DisplayName", "Remvora");
-                            key.SetValue("DisplayVersion", "1.1.0");
+                            key.SetValue("DisplayVersion", Program.GetAppVersion(this.InstalledExePath));
                             key.SetValue("Publisher", "Remvora");
                             key.SetValue("InstallLocation", installDir);
                             key.SetValue("DisplayIcon", this.InstalledExePath);

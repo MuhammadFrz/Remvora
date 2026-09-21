@@ -8,7 +8,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.1.0",
+    [string]$Version = "1.2.0",
     [string[]]$Architectures = @("win-x64", "win-arm64", "win-x86")
 )
 
@@ -63,7 +63,8 @@ foreach ($arch in $Architectures) {
     $setupLauncher = Join-Path $stagingDir "Setup.exe"
     Write-Host "Compiling root launcher Remvora.exe & Setup.exe..." -ForegroundColor Yellow
     if (Test-Path $csc) {
-        & $csc /target:winexe /r:System.IO.Compression.dll "/win32icon:$iconPath" "/out:$targetLauncher" "$launcherSrc" | Out-Null
+        & $csc /target:winexe /r:System.IO.Compression.dll "/win32icon:$iconPath" "/out:$targetLauncher" "$launcherSrc"
+        if ($LASTEXITCODE -ne 0) { throw "CSC compilation failed for $targetLauncher with exit code $LASTEXITCODE" }
         Copy-Item -Path $targetLauncher -Destination $setupLauncher -Force
     }
 
@@ -96,7 +97,8 @@ foreach ($arch in $Architectures) {
     $setupHash = ""
     $setupSize = 0
     if (Test-Path $csc) {
-        & $csc /target:winexe /r:System.IO.Compression.dll "/win32icon:$iconPath" "/resource:$zipFilePath,RemvoraPayload" "/out:$setupExePath" "$launcherSrc" | Out-Null
+        & $csc /target:winexe /r:System.IO.Compression.dll "/win32icon:$iconPath" "/resource:$zipFilePath,RemvoraPayload" "/out:$setupExePath" "$launcherSrc"
+        if ($LASTEXITCODE -ne 0) { throw "CSC compilation failed for $setupExeName with exit code $LASTEXITCODE" }
         $setupHash = (Get-FileHash -Path $setupExePath -Algorithm SHA256).Hash.ToLowerInvariant()
         $setupSize = (Get-Item $setupExePath).Length
         $checksums += "$setupHash  $setupExeName"

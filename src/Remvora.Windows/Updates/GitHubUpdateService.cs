@@ -23,7 +23,7 @@ public sealed partial class GitHubUpdateService : IUpdateService
     private static HttpClient CreateHttpClient()
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Remvora-App/1.1.0 (Windows; +https://github.com/MuhammadFrz/Remvora)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"Remvora-App/{GetCurrentAppVersion()} (Windows; +https://github.com/MuhammadFrz/Remvora)");
         return client;
     }
 
@@ -305,7 +305,13 @@ public sealed partial class GitHubUpdateService : IUpdateService
             return plusIdx > 0 ? infoVer[..plusIdx] : infoVer;
         }
 
-        return assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+        var ver = assembly.GetName().Version;
+        if (ver != null && ver.Major > 0)
+        {
+            return $"{ver.Major}.{ver.Minor}.{ver.Build}";
+        }
+
+        return "1.2.0";
     }
 
     private static Version ParseVersion(string version)

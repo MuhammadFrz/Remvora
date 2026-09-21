@@ -12,7 +12,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private UpdateCheckResult? _currentUpdate;
 
     [ObservableProperty]
-    public partial string CurrentVersion { get; set; } = "1.1.0";
+    public partial string CurrentVersion { get; set; } = "1.2.0";
 
     [ObservableProperty]
     public partial bool IsCheckingForUpdates { get; set; }
@@ -52,6 +52,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     public partial double DownloadProgress { get; set; }
+
+    public string AboutVersionText => $"Version {CurrentVersion} • .NET 10 LTS • Windows App SDK 2.5.1";
 
     public SettingsViewModel(IUpdateService updateService)
     {
@@ -184,7 +186,13 @@ public sealed partial class SettingsViewModel : ObservableObject
             return plus > 0 ? infoVer[..plus] : infoVer;
         }
 
-        return assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+        var ver = assembly.GetName().Version;
+        if (ver != null && ver.Major > 0)
+        {
+            return $"{ver.Major}.{ver.Minor}.{ver.Build}";
+        }
+
+        return "1.2.0";
     }
 
     private static string FormatBytes(long bytes)

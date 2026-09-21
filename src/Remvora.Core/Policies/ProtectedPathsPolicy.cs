@@ -16,6 +16,10 @@ public interface IProtectedPathsPolicy
 /// </summary>
 public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
 {
+    public static ProtectedPathsPolicy Default { get; } = new();
+
+    public static bool IsProtected(string? rawPath) => Default.IsPathProtected(rawPath, out _);
+
     private readonly HashSet<string> _exactProtectedPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _protectedPathPrefixes = [];
     private readonly HashSet<string> _exactProtectedRegistryKeys = new(StringComparer.OrdinalIgnoreCase);

@@ -24,7 +24,13 @@ public enum ErrorCode
     OperationFailed = 16,
     InvalidPath = 17,
     InvalidRegistryKey = 18,
-    ProtocolViolation = 19
+    ProtocolViolation = 19,
+    SystemRestoreFailed = 20,
+    SystemRestoreUnavailable = 21,
+    SystemRestoreDisabled = 22,
+    UninstallStrategyNotFound = 23,
+    ExecutionFailed = 24,
+    UninstallerExitCodeNonZero = 25
 }
 
 /// <summary>

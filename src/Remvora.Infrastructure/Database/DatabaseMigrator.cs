@@ -51,6 +51,24 @@ public sealed class DatabaseMigrator
             CREATE INDEX IF NOT EXISTS idx_applications_product_code ON applications(product_code);
             CREATE INDEX IF NOT EXISTS idx_applications_package_family ON applications(package_family_name);
             CREATE INDEX IF NOT EXISTS idx_applications_registry_key ON applications(registry_key_path);
+
+            CREATE TABLE IF NOT EXISTS audit_events (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                category INTEGER NOT NULL,
+                severity INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                target TEXT,
+                application_id TEXT,
+                transaction_id TEXT,
+                result TEXT,
+                error_code INTEGER NOT NULL,
+                details TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_audit_events_timestamp ON audit_events(timestamp);
+            CREATE INDEX IF NOT EXISTS idx_audit_events_app_id ON audit_events(application_id);
+            CREATE INDEX IF NOT EXISTS idx_audit_events_trans_id ON audit_events(transaction_id);
             """;
 
         connection.Execute(createApplicationsTableSql);

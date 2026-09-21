@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Name="CleanerRoot"
+    x:Class="Remvora.App.Pages.CleanerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Remvora.App.ViewModels"
+    mc:Ignorable="d">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Vertical" Spacing="4">
+                <TextBlock Text="System Cleaner &amp; Shredder" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="SemiBold"/>
+                <TextBlock Text="Free up valuable disk storage, clear privacy traces, and permanently destroy sensitive files." Style="{ThemeResource BodySubtleTextBlockStyle}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Command="{x:Bind ViewModel.ScanAllCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE72C;"/>
+                        <TextBlock Text="Rescan System"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Tabs / Sections -->
+        <TabView Grid.Row="1" IsAddTabButtonVisible="False">
+            <!-- 1. Junk Cleaner Tab -->
+            <TabViewItem Header="Junk Cleaner" IsClosable="False">
+                <TabViewItem.IconSource>
+                    <FontIconSource Glyph="&#xE74D;"/>
+                </TabViewItem.IconSource>
+                <Grid Padding="0,16,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Summary Card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Total Reclaimable Space" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Bind ViewModel.TotalJunkSizeText, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                <TextBlock Text="{x:Bind ViewModel.TotalJunkFilesText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Command="{x:Bind ViewModel.CleanJunkCommand}" Style="{ThemeResource AccentButtonStyle}" Padding="20,10" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE74D;"/>
+                                    <TextBlock Text="Clean Selected Junk"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Junk Categories List -->
+                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <ListView ItemsSource="{x:Bind ViewModel.JunkGroups, Mode=OneWay}" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:JunkGroupViewModel">
+                                    <Grid Padding="12,12" ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}"/>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{x:Bind Description}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Column="2" Text="{x:Bind ItemCountFormatted}" VerticalAlignment="Center" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                        <TextBlock Grid.Column="3" Text="{x:Bind SizeFormatted}" FontWeight="SemiBold" VerticalAlignment="Center" TextAlignment="Right"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+                </Grid>
+            </TabViewItem>
+
+            <!-- 2. Privacy Cleaner Tab -->
+            <TabViewItem Header="Privacy Cleaner" IsClosable="False">
+                <TabViewItem.IconSource>
+                    <FontIconSource Glyph="&#xE727;"/>
+                </TabViewItem.IconSource>
+                <Grid Padding="0,16,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Identified Activity Traces" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Bind ViewModel.TotalPrivacyTracesText, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Command="{x:Bind ViewModel.CleanPrivacyCommand}" Style="{ThemeResource AccentButtonStyle}" Padding="20,10" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE727;"/>
+                                    <TextBlock Text="Erase Activity History"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                        <ListView ItemsSource="{x:Bind ViewModel.PrivacyItems, Mode=OneWay}" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PrivacyItemViewModel">
+                                    <Grid Padding="12,12" ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="140"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}"/>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{x:Bind Description}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Column="2" Text="{x:Bind CountFormatted}" FontWeight="SemiBold" VerticalAlignment="Center" TextAlignment="Right"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+                </Grid>
+            </TabViewItem>
+
+            <!-- 3. Secure Shredder Tab -->
+            <TabViewItem Header="Secure Shredder" IsClosable="False">
+                <TabViewItem.IconSource>
+                    <FontIconSource Glyph="&#xE72E;"/>
+                </TabViewItem.IconSource>
+                <Grid Padding="0,16,0,0">
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="24">
+                        <StackPanel Spacing="20" MaxWidth="600" HorizontalAlignment="Left">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Military-Grade File Obliteration" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                                <TextBlock Text="Files are overwritten with multiple patterns, flushed to disk, truncated, and renamed before removal to prevent data forensics." Style="{ThemeResource BodySubtleTextBlockStyle}" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Target File Path" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                <TextBox Text="{x:Bind ViewModel.ShredFilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="C:\path\to\sensitive_file.ext"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Wiping Standard / Algorithm" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                <ComboBox SelectedItem="{x:Bind ViewModel.SelectedAlgorithm, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                    <x:String>DoD 5220.22-M (3 Passes)</x:String>
+                                    <x:String>NIST 800-88 (2 Passes)</x:String>
+                                    <x:String>Pseudorandom (1 Pass)</x:String>
+                                    <x:String>Zero Fill (1 Pass)</x:String>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <Button Command="{x:Bind ViewModel.ShredFileCommand}" Style="{ThemeResource AccentButtonStyle}" Padding="24,12">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE74D;"/>
+                                    <TextBlock Text="Permanently Shred File" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabViewItem>
+        </TabView>
+
+        <!-- Status Bar -->
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" Width="16" Height="16" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

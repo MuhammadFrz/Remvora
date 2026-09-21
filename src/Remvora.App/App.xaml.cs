@@ -105,12 +105,18 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<Remvora.Application.Startup.IStartupManager, Remvora.Windows.Startup.WindowsStartupManager>();
         services.AddSingleton<Remvora.Application.WindowsApps.IWindowsAppsManager, Remvora.Windows.WindowsApps.WindowsPackageAppManager>();
 
+        // Cleaning & Shredder Services
+        services.AddSingleton<Remvora.Application.Cleaning.IJunkCleaner, Remvora.Windows.Cleaning.WindowsJunkCleaner>();
+        services.AddSingleton<Remvora.Application.Cleaning.IPrivacyCleaner, Remvora.Windows.Cleaning.WindowsPrivacyCleaner>();
+        services.AddSingleton<Remvora.Application.Cleaning.ISecureShredder, Remvora.Windows.Cleaning.WindowsSecureShredder>();
+
         // ViewModels
         services.AddTransient<AppsViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<CleanupPreviewViewModel>();
         services.AddTransient<StartupViewModel>();
         services.AddTransient<WindowsAppsViewModel>();
+        services.AddTransient<CleanerViewModel>();
 
         return services.BuildServiceProvider();
     }

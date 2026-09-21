@@ -65,6 +65,13 @@
                         <FontIcon Glyph="&#xE7B5;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem
+                    Content="System Cleaner"
+                    Tag="cleaner">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE721;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
             <Frame x:Name="NavFrame" />
         </NavigationView>

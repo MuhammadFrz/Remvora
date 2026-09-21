@@ -54,6 +54,9 @@ public sealed partial class MainWindow : Window
                 case "startup":
                     NavFrame.Navigate(typeof(StartupPage));
                     break;
+                case "cleaner":
+                    NavFrame.Navigate(typeof(CleanerPage));
+                    break;
                 default:
                     break;
             }

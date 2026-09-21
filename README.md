@@ -72,10 +72,6 @@ Remvora follows Clean Layered Architecture with clean separation of concerns:
 
 ```
 Remvora/
-├── .github/                   # GitHub Actions CI/CD workflows
-│   └── workflows/
-│       ├── ci.yml             # Pull request & push automated test validation
-│       └── release.yml        # Multi-architecture automated release publisher
 ├── docs/                      # Comprehensive engineering documentation & assets
 │   ├── assets/                # High-resolution logos, emblems, and media
 │   ├── architecture.md        # Architectural blueprint and subsystem layers
@@ -119,16 +115,28 @@ Remvora natively targets all primary Windows hardware architectures:
 | **Windows ARM64** | ARM-powered PCs (Snapdragon X Elite, Surface Pro Copilot+) | `win-arm64` | `Remvora-v<version>-win-arm64.zip` |
 | **Windows x86** | 32-bit legacy Windows environments | `win-x86` | `Remvora-v<version>-win-x86.zip` |
 
-### Packaging All Architecture Distributions
+### Distribution Architecture Layout
 
-Generate all release zip archives locally in one command:
+When an end-user downloads and extracts any of the release archives, the root folder is clean and free of loose DLL clutter:
+
+```
+Remvora-v1.0.0-win-x64/
+├── Remvora.exe        # Clean root launcher with embedded high-resolution icon
+├── install.ps1        # Turnkey PowerShell installer with Start Menu & registry integration
+├── uninstall.ps1      # Clean uninstaller script
+└── app/               # Isolated container housing all application binaries and runtimes
+    ├── Remvora.App.exe
+    ├── Remvora.ElevatedWorker.exe
+    └── ... (all internal DLLs and resources)
+```
+
+### Packaging Architecture Distributions
+
+Generate all clean release zip archives locally in one command:
 ```powershell
 .\scripts\package-releases.ps1 -Version "1.0.0"
 ```
 This packages each architecture into the `/releases` directory accompanied by `checksums-sha256.txt`.
-
-### Automated GitHub CI/CD Releases
-The included GitHub Actions workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml)) automatically compiles all 3 target architectures in parallel on `windows-latest` runners whenever a version tag (e.g. `v1.0.0`) is pushed to GitHub, attaching the zipped bundles and SHA-256 hashes to the official GitHub Release.
 
 ---
 

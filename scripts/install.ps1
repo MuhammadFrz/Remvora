@@ -2,12 +2,13 @@
 .SYNOPSIS
     Installs Remvora onto the local Windows machine.
 .DESCRIPTION
-    Builds and publishes the self-contained Remvora application, copies it to
-    $env:LocalAppData\Programs\Remvora, creates Start Menu and Desktop shortcuts,
-    and registers Remvora in Windows "Installed Apps" (Programs and Features).
+    Installs the clean Remvora distribution to:
+      %LocalAppData%\Programs\Remvora (User Scope)
+    or
+      %ProgramFiles%\Remvora (System Scope)
+    Creates Start Menu and Desktop shortcuts and registers Remvora in Windows "Installed Apps".
 .PARAMETER Scope
-    User (default, no admin required, installs to %LocalAppData%\Programs\Remvora)
-    or System (requires Run as Administrator, installs to %ProgramFiles%\Remvora).
+    User (default, per-user, no admin required) or System (machine-wide, requires Admin).
 #>
 [CmdletBinding()]
 param(
@@ -32,34 +33,75 @@ if ($Scope -eq "System") {
     $startMenuDir = [System.IO.Path]::Combine($env:APPDATA, "Microsoft\Windows\Start Menu\Programs")
 }
 
-# 2. Publish if not skipped
-$publishDir = Join-Path $rootDir "publish\Remvora"
-if (-not $SkipBuild -or -not (Test-Path $publishDir)) {
-    Write-Host "Publishing Remvora.App (Release, win-x64, self-contained)..." -ForegroundColor Cyan
-    dotnet publish "$rootDir\src\Remvora.App\Remvora.App.csproj" -c Release -r win-x64 --self-contained -o $publishDir
-    Write-Host "Publishing Remvora.Elevation..." -ForegroundColor Cyan
-    dotnet publish "$rootDir\src\Remvora.Elevation\Remvora.Elevation.csproj" -c Release -r win-x64 --self-contained -o $publishDir
-}
-
-# 3. Create destination and copy files
 Write-Host "Installing Remvora to: $installDir" -ForegroundColor Cyan
 if (-not (Test-Path $installDir)) {
     New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 }
 
-Copy-Item -Path "$publishDir\*" -Destination $installDir -Recurse -Force
+$appInstallDir = Join-Path $installDir "app"
+if (-not (Test-Path $appInstallDir)) {
+    New-Item -ItemType Directory -Path $appInstallDir -Force | Out-Null
+}
 
-# 4. Copy uninstall script to install directory
+# 2. Check if running from pre-packaged distribution or source repository
+$localAppDir = Join-Path $scriptDir "app"
+if (Test-Path $localAppDir) {
+    # Running from extracted distribution zip
+    Write-Host "Copying pre-packaged application files..." -ForegroundColor Gray
+    Copy-Item -Path "$localAppDir\*" -Destination $appInstallDir -Recurse -Force
+    if (Test-Path (Join-Path $scriptDir "Remvora.exe")) {
+        Copy-Item -Path (Join-Path $scriptDir "Remvora.exe") -Destination $installDir -Force
+    }
+} else {
+    # Running from source code
+    $publishStaging = Join-Path $rootDir "publish\win-x64\app"
+    if (-not $SkipBuild -or -not (Test-Path $publishStaging)) {
+        Write-Host "Publishing Remvora.App (Release, win-x64)..." -ForegroundColor Cyan
+        dotnet publish "$rootDir\src\Remvora.App\Remvora.App.csproj" -c Release -r win-x64 --self-contained -o $publishStaging
+        Write-Host "Publishing Remvora.Elevation..." -ForegroundColor Cyan
+        dotnet publish "$rootDir\src\Remvora.Elevation\Remvora.Elevation.csproj" -c Release -r win-x64 --self-contained -o $publishStaging
+    }
+
+    Copy-Item -Path "$publishStaging\*" -Destination $appInstallDir -Recurse -Force
+
+    # Compile root launcher
+    $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+    $launcherSrc = Join-Path $rootDir "scripts\Launcher.cs"
+    $iconPath = Join-Path $rootDir "src\Remvora.App\Assets\AppIcon.ico"
+    $targetLauncher = Join-Path $installDir "Remvora.exe"
+    if (Test-Path $csc) {
+        Write-Host "Compiling root launcher Remvora.exe..." -ForegroundColor Gray
+        & $csc /target:winexe "/win32icon:$iconPath" "/out:$targetLauncher" "$launcherSrc" | Out-Null
+    }
+}
+
+# 3. Copy uninstall script
 $installedUninstallScript = Join-Path $installDir "uninstall.ps1"
-Copy-Item -Path "$scriptDir\uninstall.ps1" -Destination $installedUninstallScript -Force
+$srcUninstall = if (Test-Path (Join-Path $scriptDir "uninstall.ps1")) { Join-Path $scriptDir "uninstall.ps1" } else { Join-Path $rootDir "scripts\uninstall.ps1" }
+if (Test-Path $srcUninstall) {
+    Copy-Item -Path $srcUninstall -Destination $installedUninstallScript -Force
+}
+
+# 4. Shortcut target
+$primaryExe = if (Test-Path (Join-Path $installDir "Remvora.exe")) {
+    Join-Path $installDir "Remvora.exe"
+} else {
+    Join-Path $appInstallDir "Remvora.App.exe"
+}
+
+$iconSource = if (Test-Path (Join-Path $installDir "Remvora.exe")) {
+    "$installDir\Remvora.exe,0"
+} else {
+    "$(Join-Path $appInstallDir 'Assets\AppIcon.ico'),0"
+}
 
 # 5. Create Start Menu Shortcut
 $wshShell = New-Object -ComObject WScript.Shell
 $shortcutPath = Join-Path $startMenuDir "Remvora.lnk"
 $shortcut = $wshShell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = Join-Path $installDir "Remvora.App.exe"
+$shortcut.TargetPath = $primaryExe
 $shortcut.WorkingDirectory = $installDir
-$shortcut.IconLocation = "$installDir\Assets\AppIcon.ico,0"
+$shortcut.IconLocation = $iconSource
 $shortcut.Description = "Remvora - Windows Uninstaller and Cleanup Utility"
 $shortcut.Save()
 Write-Host "Created Start Menu shortcut: $shortcutPath" -ForegroundColor Green
@@ -69,9 +111,9 @@ if ($CreateDesktopShortcut) {
     $desktopDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
     $desktopShortcutPath = Join-Path $desktopDir "Remvora.lnk"
     $desktopShortcut = $wshShell.CreateShortcut($desktopShortcutPath)
-    $desktopShortcut.TargetPath = Join-Path $installDir "Remvora.App.exe"
+    $desktopShortcut.TargetPath = $primaryExe
     $desktopShortcut.WorkingDirectory = $installDir
-    $desktopShortcut.IconLocation = "$installDir\Assets\AppIcon.ico,0"
+    $desktopShortcut.IconLocation = $iconSource
     $desktopShortcut.Description = "Remvora - Windows Uninstaller and Cleanup Utility"
     $desktopShortcut.Save()
     Write-Host "Created Desktop shortcut: $desktopShortcutPath" -ForegroundColor Green
@@ -82,15 +124,20 @@ if (-not (Test-Path $uninstallRegKey)) {
     New-Item -Path $uninstallRegKey -Force | Out-Null
 }
 
+$displayIcon = if (Test-Path (Join-Path $appInstallDir "Assets\AppIcon.ico")) {
+    Join-Path $appInstallDir "Assets\AppIcon.ico"
+} else {
+    $primaryExe
+}
+
 Set-ItemProperty -Path $uninstallRegKey -Name "DisplayName" -Value "Remvora"
 Set-ItemProperty -Path $uninstallRegKey -Name "DisplayVersion" -Value "1.0.0"
 Set-ItemProperty -Path $uninstallRegKey -Name "Publisher" -Value "Remvora"
 Set-ItemProperty -Path $uninstallRegKey -Name "InstallLocation" -Value $installDir
-Set-ItemProperty -Path $uninstallRegKey -Name "DisplayIcon" -Value (Join-Path $installDir "Assets\AppIcon.ico")
+Set-ItemProperty -Path $uninstallRegKey -Name "DisplayIcon" -Value $displayIcon
 Set-ItemProperty -Path $uninstallRegKey -Name "UninstallString" -Value "powershell.exe -ExecutionPolicy Bypass -File `"$installedUninstallScript`""
 Set-ItemProperty -Path $uninstallRegKey -Name "NoModify" -Value 1 -Type DWord
 Set-ItemProperty -Path $uninstallRegKey -Name "NoRepair" -Value 1 -Type DWord
 
-Write-Host "Remvora registered in Windows Installed Apps registry." -ForegroundColor Green
-Write-Host "Installation completed successfully!" -ForegroundColor Green
-Write-Host "You can now launch Remvora from the Start Menu or run: & '$installDir\Remvora.App.exe'" -ForegroundColor Yellow
+Write-Host "Remvora successfully registered in Windows Installed Apps." -ForegroundColor Green
+Write-Host "Installation completed! Launch from Start Menu or: & '$primaryExe'" -ForegroundColor Yellow

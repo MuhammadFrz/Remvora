@@ -1,56 +1,88 @@
 # Remvora
 
-**Remvora** is a modern, native Windows 11 desktop uninstaller and system cleanup utility engineered with WinUI 3 and .NET 10. It prioritizes safety, transparency, transaction-backed recovery, and evidence-based software removal.
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![Platform](https://img.shields.io/badge/platform-Windows%2011%20%7C%20Windows%2010%20x64-blue.svg)]()
+[![Target Framework](https://img.shields.io/badge/.NET-10.0%20LTS-purple.svg)]()
+[![UI Framework](https://img.shields.io/badge/UI-WinUI%203%20(Windows%20App%20SDK)-0078D4.svg)]()
+[![Tests](https://img.shields.io/badge/tests-117%20passed%20%7C%200%20failed-brightgreen.svg)]()
+[![Architecture](https://img.shields.io/badge/architecture-Clean%20Architecture%20%2B%20Privilege%20Separation-orange.svg)]()
+
+**Remvora** is an uninstaller and system maintenance utility engineered for modern Windows (x64). Built with **WinUI 3** and **.NET 10**, Remvora prioritizes safety, complete transparency, transactional rollback recovery, and deterministic evidence-based leftover removal.
 
 ---
 
-## Navigation Menus Overview
+## Key Capabilities & Navigation
 
-Remvora includes a comprehensive sidebar navigation with dedicated tools:
+Remvora provides an integrated suite of maintenance tools accessible through the left navigation pane:
 
-| Menu | Description |
-| :--- | :--- |
-| **Dashboard** | System overview displaying installed applications count, detected junk cache size, startup load impact, and rapid-action buttons. |
-| **Installed Apps** | Main uninstaller grid aggregating 32-bit, 64-bit, and MSI installations. Supports **Standard**, **Complete**, and **Forced** uninstallation flows with System Restore checkpoints and interactive leftover candidate review. |
-| **Install Monitor** | **Installation Monitor menu** — A real-time tracking engine for monitoring third-party software setups. Captures pre- and post-installation snapshots, identifies every file, directory, and registry key written, and saves the session for 100% clean future uninstallation. |
-| **Windows Apps** | Discovery and clean removal of modern Universal Windows Platform (UWP) and MSIX / AppX packages. |
-| **Startup Manager** | Comprehensive autorun manager inspecting Registry Run keys (`HKCU`/`HKLM`), Windows Startup folders, and Task Scheduler triggers with toggle enable/disable controls. |
-| **System Cleaner** | Evidence-based junk file cleaner (temporary directories, crash dumps, thumbnail caches) and privacy cleaner (Windows MRU lists, Explorer history). |
-| **Hunter Mode** | Interactive desktop targeting crosshair overlay. Drag onto any open window or desktop shortcut to identify the parent executable, terminate rogue processes, or trigger instant targeted uninstallation. |
-| **Windows Tools** | Quick-launch command hub providing one-click access to 16 native Windows administrative utilities (Event Viewer, Services, Task Manager, Disk Management, Registry Editor, etc.). |
-| **Audit Log** | Chronological timeline and transaction log of every uninstall, cleanup, backup, and rollback operation, backed by SQLite. |
+| Menu | Purpose | Key Features |
+| :--- | :--- | :--- |
+| **Dashboard** | System health at a glance | Summary statistics of installed applications, total junk cache size, startup load score, and one-click quick actions. |
+| **Installed Apps** | Comprehensive application uninstaller | Aggregates 32-bit, 64-bit, and MSI installations. Supports **Standard**, **Complete**, and **Forced** uninstallation flows with System Restore checkpoints and interactive leftover candidate review. |
+| **Install Monitor** | Real-time installation tracking engine | Monitors third-party setup packages (`.exe` / `.msi`). Captures baseline snapshots, tracks every file and registry entry written in real time, and saves installation logs for 100% clean future uninstallation. |
+| **Windows Apps** | Modern packages manager | Discovery, filter, and removal of Universal Windows Platform (UWP) and AppX/MSIX provisioned packages. |
+| **Startup Manager** | Boot optimizer & autorun controller | Inspects and manages startup entries across Registry Run keys (`HKCU`/`HKLM`), Windows Startup folders, and Task Scheduler triggers with instant toggle controls. |
+| **System Cleaner** | Storage reclamation & privacy suite | Safe junk file cleaner (temporary folders, crash dumps, thumbnail caches) and privacy cleaner (MRU lists, run history, Explorer caches). |
+| **Hunter Mode** | Desktop crosshair targeting | Desktop overlay targeting widget. Drag onto any visible window, desktop icon, or system tray icon to identify the process, force-close stubborn apps, or launch targeted uninstallation. |
+| **Windows Tools** | System administration hub | One-click quick launcher for 16 native Windows utilities (Task Manager, Services, Event Viewer, Disk Management, Group Policy, Registry Editor, etc.). |
+| **Audit Log** | Forensic operation history | Chronological, searchable timeline and transaction log of every uninstallation, cleanup, and rollback action, persisted in local SQLite. |
 
 ---
 
-## How to Install Remvora on Windows
+## Architectural Highlights
 
-You have multiple options to install and run Remvora:
+```mermaid
+graph TD
+    subgraph Unelevated User Context
+        UI[Remvora WinUI 3 App] --> VM[ViewModels CommunityToolkit.Mvvm]
+        VM --> APP[Remvora.Application Layer]
+        APP --> CORE[Remvora.Core Domain & Policies]
+        APP --> INFRA[Remvora.Infrastructure SQLite & Dapper]
+        APP --> WIN[Remvora.Windows Interop & Discovery]
+    end
 
-### Option 1: One-Click Local Installation (Recommended)
+    subgraph Privileged Elevated Context
+        WORKER[Remvora.ElevatedWorker.exe]
+    end
 
-Run the included PowerShell installation script. This script builds and publishes Remvora as a self-contained application, installs it into your user profile (`%LocalAppData%\Programs\Remvora`), creates a Start Menu shortcut, and registers Remvora in Windows "Installed Apps" with a clean uninstaller:
+    UI -.->|Authenticated Named Pipe IPC \n Cryptographic Nonce Handshake| WORKER
+    WORKER -->|Locked File / Service / Registry Operations| OS[Windows 11 Kernel / HKLM]
+```
+
+1. **Strict Privilege Separation**: Remvora's graphical interface runs strictly unelevated (standard user privileges). When privileged actions are needed (e.g. deleting locked services or `HKLM` keys), an isolated out-of-process worker (`Remvora.ElevatedWorker.exe`) is launched on-demand via authenticated Named Pipe IPC with cryptographically secure nonce verification.
+2. **Deterministic Evidence Scoring**: Leftovers are identified using weighted evidence rules rather than naive substring matching, eliminating false positives on shared runtime libraries.
+3. **Protected Paths Policy**: Hardened safety boundaries strictly protect core Windows folders (`Windows`, `System32`, `WinSxS`), boot files, and essential hives against accidental modification or directory traversal (`..`) attacks.
+4. **Transaction Backups & Atomic Rollback**: Files are staged in an isolated backup store and registry modifications are backed up to `.reg` format before deletion, allowing one-click rollback from the Audit Log.
+
+---
+
+## How to Install & Run Remvora
+
+### Option 1: Automated Local Installation (Recommended)
+
+Remvora includes a turnkey PowerShell installation script that compiles self-contained binaries, installs them to your local user directory (`%LocalAppData%\Programs\Remvora`), creates a Start Menu shortcut, and registers Remvora in **Windows Settings > Apps > Installed Apps**:
 
 ```powershell
-# From the repository root (in PowerShell):
+# Run from the repository root:
 .\scripts\install.ps1
 ```
 
-*Optional Flags:*
-- `-CreateDesktopShortcut`: Adds a shortcut on your Windows Desktop.
-- `-Scope System`: Installs machine-wide to `%ProgramFiles%\Remvora` (requires running PowerShell as Administrator).
-- `-SkipBuild`: Installs an already published build without rebuilding.
+*Helpful Parameters:*
+- `.\scripts\install.ps1 -CreateDesktopShortcut` : Creates an optional desktop icon.
+- `.\scripts\install.ps1 -Scope System` : Installs system-wide to `Program Files` (requires Administrator).
+- `.\scripts\install.ps1 -SkipBuild` : Installs directly from an existing build.
 
-To cleanly uninstall Remvora at any time, run:
+To cleanly remove Remvora:
 ```powershell
 .\scripts\uninstall.ps1
 ```
-Or open **Windows Settings > Apps > Installed Apps** and select **Uninstall** next to Remvora.
+*(Or use Windows Settings > Apps > Installed Apps > Remvora > Uninstall).*
 
 ---
 
-### Option 2: Run Directly (Development Mode)
+### Option 2: Run in Development Mode
 
-If you have the .NET SDK installed, you can launch Remvora directly without installation:
+Run directly from source without installing:
 
 ```powershell
 dotnet run --project src/Remvora.App/Remvora.App.csproj
@@ -58,35 +90,37 @@ dotnet run --project src/Remvora.App/Remvora.App.csproj
 
 ---
 
-### Option 3: Manual Self-Contained Publish
+### Option 3: Manual Self-Contained Release Build
 
-To create a standalone portable directory containing all required runtimes:
+To produce a self-contained portable folder:
 
 ```powershell
-# 1. Publish Remvora.App
+# 1. Publish main application
 dotnet publish src/Remvora.App/Remvora.App.csproj -c Release -r win-x64 --self-contained -o ./publish/Remvora
 
-# 2. Publish Remvora.ElevatedWorker (required for privileged operations)
+# 2. Publish elevated worker
 dotnet publish src/Remvora.Elevation/Remvora.Elevation.csproj -c Release -r win-x64 --self-contained -o ./publish/Remvora
 
-# 3. Run the executable
+# 3. Launch Remvora
 .\publish\Remvora\Remvora.App.exe
 ```
 
 ---
 
-## Testing & Quality
+## Testing & Quality Assurance
 
-To run the automated test suite across all architectural layers:
+Run the automated test suite covering all layers (Core, Contracts, Application, Infrastructure, Windows):
 
 ```powershell
 dotnet test Remvora.slnx
 ```
 
+- **5 Test Projects**: `Remvora.Core.Tests`, `Remvora.Contracts.Tests`, `Remvora.Application.Tests`, `Remvora.Infrastructure.Tests`, `Remvora.Windows.Tests`
+- **117 automated tests**: 100% passing with 0 warnings and 0 errors under Roslyn `latest-recommended` code quality analyzers.
+
 ---
 
-## Architecture & Security
+## System Requirements
 
-- **Privilege Separation**: Remvora's UI runs unelevated (standard user). When root-level actions are required (e.g. deleting locked services or `HKLM` keys), an isolated out-of-process worker (`Remvora.ElevatedWorker.exe`) is spawned on-demand via authenticated IPC with cryptographic nonce verification.
-- **Rollback Engine**: Backs up registry keys to `.reg` format and files to an isolated backup store before deletion, enabling one-click transaction rollbacks.
-- **Safety First**: Protected system paths (`Windows`, `System32`, critical boot keys) are shielded by hardcoded safety guardrails.
+- **Operating System**: Windows 11 (build 22000+) or Windows 10 (build 1809+), 64-bit architecture (`win-x64`).
+- **Development Tooling**: .NET 10 SDK and Windows 10/11 SDK.

@@ -1,35 +1,79 @@
-## Visual Studio & .NET
+## Build Outputs & Compilations
 [Bb]in/
 [Oo]bj/
+[Oo]ut/
 [Pp]ublish/
+/publish/
 [Ll]og/
 [Ll]ogs/
-*.user
-*.userosscache
-*.sln.docstates
-.vs/
-.vscode/
-*.suo
-*.userprefs
+*.log
 TestResults/
-*.DotSettings.user
 
-## Package caches
+## Package Caches
 packages/
 *.nupkg
 *.snupkg
 
-## Windows
+## Secrets, Credentials & Local Configuration
+.env
+.env.*
+*.env
+secrets.json
+appsettings*.local.json
+appsettings*.Development.json
+*.credentials
+*.token
+
+## Certificates & Signing Keys
+*.pfx
+*.p12
+*.snk
+*.cer
+*.crt
+*.pem
+*.key
+Package.StoreAssociation.xml
+*.publishsettings
+
+## Visual Studio, VS Code & IDE State
+.vs/
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+*.DotSettings.user
+*.DotSettings
+Generated Files/
+
+## Packaging & Deployment Artifacts
+AppPackages/
+BundleArtifacts/
+_pkginfo.txt
+
+## Databases, Crash Dumps & Backups
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.bak
+*.reg
+*.dmp
+*.dump
+
+## OS & Temporary Files
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-
-## SQLite local databases
-*.db
-*.db-shm
-*.db-wal
-
-## OS & temporary files
+.DS_Store
 *.tmp
 *.temp
+
+## AI / Assistant Local Artifacts
+.gemini/
+.agents/
+scratch/

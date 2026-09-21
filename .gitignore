@@ -4,6 +4,10 @@
 [Oo]ut/
 [Pp]ublish/
 /publish/
+[Rr]eleases/
+/releases/
+[Dd]ist/
+/dist/
 [Ll]og/
 [Ll]ogs/
 *.log

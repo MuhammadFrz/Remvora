@@ -1,0 +1,30 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test-and-build:
+    name: Build & Test (win-x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore Remvora.slnx
+
+      - name: Run Automated Test Suite
+        run: dotnet test Remvora.slnx --no-restore --verbosity normal
+
+      - name: Build WinUI 3 App (Release win-x64)
+        run: dotnet build src/Remvora.App/Remvora.App.csproj -c Release -r win-x64

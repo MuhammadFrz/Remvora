@@ -107,6 +107,31 @@ dotnet publish src/Remvora.Elevation/Remvora.Elevation.csproj -c Release -r win-
 
 ---
 
+---
+
+## Multi-Architecture Releases
+
+Remvora natively targets all primary Windows hardware architectures:
+
+| Target Architecture | Platform Description | Runtime Identifier | Distribution Artifact |
+| :--- | :--- | :--- | :--- |
+| **Windows x64** | Standard 64-bit PCs (Intel Core, AMD Ryzen) | `win-x64` | `Remvora-v<version>-win-x64.zip` |
+| **Windows ARM64** | ARM-powered PCs (Snapdragon X Elite, Surface Pro Copilot+) | `win-arm64` | `Remvora-v<version>-win-arm64.zip` |
+| **Windows x86** | 32-bit legacy Windows environments | `win-x86` | `Remvora-v<version>-win-x86.zip` |
+
+### Packaging All Architecture Distributions
+
+You can generate all release zip archives locally in one command:
+```powershell
+.\scripts\package-releases.ps1 -Version "1.0.0"
+```
+This packages each architecture into the `/releases` directory accompanied by `checksums-sha256.txt`.
+
+### Automated GitHub CI/CD Releases
+The included GitHub Actions workflow ([`.github/workflows/release.yml`](file:///d:/Github/Remvora/.github/workflows/release.yml)) automatically compiles all 3 target architectures in parallel on `windows-latest` runners whenever a version tag (e.g. `v1.0.0`) is pushed to GitHub, attaching the zipped bundles and SHA-256 hashes to the official GitHub Release.
+
+---
+
 ## Testing & Quality Assurance
 
 Run the automated test suite covering all layers (Core, Contracts, Application, Infrastructure, Windows):
@@ -122,5 +147,6 @@ dotnet test Remvora.slnx
 
 ## System Requirements
 
-- **Operating System**: Windows 11 (build 22000+) or Windows 10 (build 1809+), 64-bit architecture (`win-x64`).
-- **Development Tooling**: .NET 10 SDK and Windows 10/11 SDK.
+- **Operating System**: Windows 11 (build 22000+) or Windows 10 (build 1809+), 64-bit or ARM64 architecture.
+- **Development Tooling**: .NET 10 SDK and Windows App SDK.
+

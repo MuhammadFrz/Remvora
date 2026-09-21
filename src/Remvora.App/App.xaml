@@ -13,6 +13,7 @@
             <!-- Value Converters -->
             <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <converters:InvertedBooleanToVisibilityConverter x:Key="InvertedBooleanToVisibilityConverter"/>
+            <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter"/>
             <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
             <converters:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter"/>
             <converters:GreaterThanZeroToVisibilityConverter x:Key="GreaterThanZeroToVisibilityConverter"/>

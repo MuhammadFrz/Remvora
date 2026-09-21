@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Remvora.App.Pages.HunterPage"
+    x:Name="RootPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hunter="using:Remvora.Application.Hunter"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Loaded="Page_Loaded"
+    mc:Ignorable="d">
+
+    <Grid Padding="24" RowDefinitions="Auto,Auto,*">
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16" Spacing="4">
+            <TextBlock
+                FontWeight="SemiBold"
+                Style="{ThemeResource TitleTextBlockStyle}"
+                Text="Hunter Mode" />
+            <TextBlock
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{ThemeResource BodyTextBlockStyle}"
+                Text="Pinpoint any running window, desktop process, or dropped executable to inspect, terminate, or completely uninstall." />
+        </StackPanel>
+
+        <!-- Status InfoBar -->
+        <InfoBar
+            Grid.Row="1"
+            Margin="0,0,0,16"
+            IsOpen="{x:Bind ViewModel.IsStatusOpen, Mode=TwoWay}"
+            Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+            Severity="{x:Bind ViewModel.StatusSeverity, Mode=OneWay}" />
+
+        <!-- Main Body: Two Columns (Left: Target Surface & Active Windows, Right: Target Inspection & Actions) -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*">
+            <!-- Left Column: Targeting Tools -->
+            <ScrollViewer Grid.Column="0" Margin="0,0,12,0" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16">
+                    <!-- Crosshair Interactive Targeting Surface -->
+                    <Border
+                        x:Name="TargetSurface"
+                        Padding="24"
+                        AllowDrop="True"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="2"
+                        CornerRadius="8"
+                        DragOver="TargetSurface_DragOver"
+                        Drop="TargetSurface_Drop">
+                        <StackPanel HorizontalAlignment="Center" Spacing="16">
+                            <!-- Crosshair Drag Button -->
+                            <Button
+                                x:Name="CrosshairButton"
+                                Width="88"
+                                Height="88"
+                                HorizontalAlignment="Center"
+                                Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                                CornerRadius="44"
+                                PointerCaptureLost="CrosshairButton_PointerCaptureLost"
+                                PointerMoved="CrosshairButton_PointerMoved"
+                                PointerPressed="CrosshairButton_PointerPressed"
+                                PointerReleased="CrosshairButton_PointerReleased"
+                                ToolTipService.ToolTip="Click and drag this crosshair onto any application window">
+                                <FontIcon
+                                    FontSize="36"
+                                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                    Glyph="&#xE790;" />
+                            </Button>
+
+                            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                                    Text="Drag Crosshair to Target" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{ThemeResource CaptionTextBlockStyle}"
+                                    Text="Click and drag the crosshair over any open desktop window" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Style="{ThemeResource CaptionTextBlockStyle}"
+                                    Text="Or drag &amp; drop an .exe or .lnk shortcut file here" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Active Desktop Windows Selector -->
+                    <Border
+                        Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <Grid RowDefinitions="Auto,Auto,*">
+                            <Grid Grid.Row="0" Margin="0,0,0,12" ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock
+                                        FontWeight="SemiBold"
+                                        Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                        Text="Active Desktop Windows" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{ThemeResource CaptionTextBlockStyle}"
+                                        Text="Select any currently running application window" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    Command="{x:Bind ViewModel.LoadActiveWindowsCommand}"
+                                    ToolTipService.ToolTip="Refresh Window List">
+                                    <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                                </Button>
+                            </Grid>
+
+                            <ProgressBar
+                                Grid.Row="1"
+                                Margin="0,0,0,8"
+                                IsIndeterminate="True"
+                                Visibility="{x:Bind ViewModel.IsScanning, Mode=OneWay}" />
+
+                            <ListView
+                                Grid.Row="2"
+                                MaxHeight="300"
+                                ItemsSource="{x:Bind ViewModel.ActiveWindowTargets, Mode=OneWay}"
+                                SelectedItem="{x:Bind ViewModel.SelectedWindowTarget, Mode=TwoWay}"
+                                SelectionMode="Single">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="hunter:HunterTargetResult">
+                                        <Grid Padding="4,8" ColumnDefinitions="Auto,*,Auto">
+                                            <FontIcon
+                                                Grid.Column="0"
+                                                Margin="0,0,12,0"
+                                                FontSize="18"
+                                                Foreground="{ThemeResource AccentFillColorDefaultBrush}"
+                                                Glyph="&#xE737;" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock
+                                                    FontWeight="SemiBold"
+                                                    Style="{ThemeResource BodyTextBlockStyle}"
+                                                    Text="{x:Bind ProcessName}" />
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{ThemeResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind WindowTitle}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                VerticalAlignment="Center"
+                                                FontFamily="Consolas"
+                                                FontSize="11"
+                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Text="{x:Bind ProcessId}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Right Column: Target Details & Actions -->
+            <ScrollViewer Grid.Column="1" Margin="12,0,0,0" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16">
+                    <!-- Placeholder when no target is acquired -->
+                    <Border
+                        Padding="32"
+                        HorizontalAlignment="Stretch"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Visibility="{x:Bind ViewModel.HasTarget, Mode=OneWay, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+                        <StackPanel HorizontalAlignment="Center" Spacing="12">
+                            <FontIcon
+                                HorizontalAlignment="Center"
+                                FontSize="48"
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                Glyph="&#xE790;" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontWeight="SemiBold"
+                                Style="{ThemeResource SubtitleTextBlockStyle}"
+                                Text="No Target Acquired" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{ThemeResource BodyTextBlockStyle}"
+                                Text="Use the crosshair tool or choose an active window on the left to inspect an application."
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Target Card when acquired -->
+                    <Border
+                        Padding="20"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Visibility="{x:Bind ViewModel.HasTarget, Mode=OneWay}">
+                        <StackPanel Spacing="16">
+                            <!-- Card Header -->
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Border
+                                    Grid.Column="0"
+                                    Width="44"
+                                    Height="44"
+                                    Margin="0,0,12,0"
+                                    Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                                    CornerRadius="8">
+                                    <FontIcon
+                                        FontSize="24"
+                                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                        Glyph="&#xE71D;" />
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock
+                                        FontWeight="SemiBold"
+                                        Style="{ThemeResource TitleTextBlockStyle}"
+                                        Text="{x:Bind ViewModel.CurrentTarget.MatchedApplication.DisplayName, Mode=OneWay}" />
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{ThemeResource CaptionTextBlockStyle}"
+                                        Text="{x:Bind ViewModel.CurrentTarget.Confidence, Mode=OneWay}" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="2"
+                                    Command="{x:Bind ViewModel.ClearTargetCommand}"
+                                    ToolTipService.ToolTip="Clear Target">
+                                    <FontIcon FontSize="14" Glyph="&#xE711;" />
+                                </Button>
+                            </Grid>
+
+                            <!-- Process Details Table -->
+                            <Border
+                                Padding="12"
+                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                CornerRadius="6">
+                                <StackPanel Spacing="8">
+                                    <Grid ColumnDefinitions="140,*">
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Process Name:" />
+                                        <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{x:Bind ViewModel.CurrentTarget.ProcessName, Mode=OneWay}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="140,*">
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Process ID (PID):" />
+                                        <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.CurrentTarget.ProcessId, Mode=OneWay}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="140,*">
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Window Title:" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CurrentTarget.WindowTitle, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="140,*">
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Publisher:" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CurrentTarget.MatchedApplication.Publisher, Mode=OneWay}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="140,*">
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Executable Path:" />
+                                        <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="11" Text="{x:Bind ViewModel.CurrentTarget.ExecutablePath, Mode=OneWay}" TextWrapping="Wrap" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- System Protection Alert -->
+                            <InfoBar
+                                IsClosable="False"
+                                IsOpen="{x:Bind ViewModel.CurrentTarget.IsSystemProtected, Mode=OneWay}"
+                                Message="This process or executable path is protected by Remvora safety policies. Destructive operations are locked."
+                                Severity="Warning" />
+
+                            <!-- Action Buttons -->
+                            <StackPanel Spacing="10">
+                                <Button
+                                    HorizontalAlignment="Stretch"
+                                    Command="{x:Bind ViewModel.CompleteUninstallTargetCommand}"
+                                    Content="Complete Uninstall"
+                                    IsEnabled="{x:Bind ViewModel.CurrentTarget.IsSystemProtected, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
+                                    Style="{ThemeResource AccentButtonStyle}">
+                                    <Button.KeyboardAccelerators>
+                                        <KeyboardAccelerator Key="Enter" />
+                                    </Button.KeyboardAccelerators>
+                                </Button>
+
+                                <Button
+                                    HorizontalAlignment="Stretch"
+                                    Command="{x:Bind ViewModel.ForcedUninstallTargetCommand}"
+                                    Content="Forced Uninstall &amp; Leftovers Clean"
+                                    IsEnabled="{x:Bind ViewModel.CurrentTarget.IsSystemProtected, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}" />
+
+                                <Grid ColumnDefinitions="*,*">
+                                    <Button
+                                        Grid.Column="0"
+                                        Margin="0,0,4,0"
+                                        HorizontalAlignment="Stretch"
+                                        Command="{x:Bind ViewModel.OpenInstallLocationCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="12" Glyph="&#xE8B7;" />
+                                            <TextBlock Text="Open Folder" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Margin="4,0,0,0"
+                                        HorizontalAlignment="Stretch"
+                                        Command="{x:Bind ViewModel.TerminateProcessCommand}"
+                                        IsEnabled="{x:Bind ViewModel.CurrentTarget.IsSystemProtected, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="12" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Glyph="&#xE71A;" />
+                                            <TextBlock Text="End Process" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Page>

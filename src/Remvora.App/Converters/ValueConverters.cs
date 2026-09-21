@@ -93,3 +93,22 @@ public sealed class GreaterThanZeroToVisibilityConverter : IValueConverter
         throw new NotSupportedException();
     }
 }
+
+public sealed class InvertedBooleanConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is bool b)
+            return !b;
+
+        return true;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        if (value is bool b)
+            return !b;
+
+        return true;
+    }
+}

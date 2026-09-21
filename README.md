@@ -1,13 +1,23 @@
-# Remvora
+<p align="center">
+  <img src="docs/assets/icon.png" width="128" height="128" alt="Remvora Logo" />
+</p>
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Platform](https://img.shields.io/badge/platform-Windows%2011%20%7C%20Windows%2010%20x64-blue.svg)]()
-[![Target Framework](https://img.shields.io/badge/.NET-10.0%20LTS-purple.svg)]()
-[![UI Framework](https://img.shields.io/badge/UI-WinUI%203%20(Windows%20App%20SDK)-0078D4.svg)]()
-[![Tests](https://img.shields.io/badge/tests-117%20passed%20%7C%200%20failed-brightgreen.svg)]()
-[![Architecture](https://img.shields.io/badge/architecture-Clean%20Architecture%20%2B%20Privilege%20Separation-orange.svg)]()
+<h1 align="center">Remvora</h1>
 
-**Remvora** is an uninstaller and system maintenance utility engineered for modern Windows (x64). Built with **WinUI 3** and **.NET 10**, Remvora prioritizes safety, complete transparency, transactional rollback recovery, and deterministic evidence-based leftover removal.
+<p align="center">
+  <strong>Native Windows 11 Uninstaller, Installation Monitor & System Maintenance Suite</strong>
+</p>
+
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/platform-Windows%2011%20%7C%20Windows%2010%20x64%20%7C%20ARM64-blue.svg" alt="Platform" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/.NET-10.0%20LTS-purple.svg" alt="Target Framework" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/UI-WinUI%203%20(Windows%20App%20SDK)-0078D4.svg" alt="UI Framework" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-117%20passed%20%7C%200%20failed-brightgreen.svg" alt="Tests" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/architecture-Clean%20Architecture%20%2B%20Privilege%20Separation-orange.svg" alt="Architecture" /></a>
+</p>
+
+**Remvora** is a modern, high-performance uninstaller and system cleanup utility engineered for Windows 11 and Windows 10 (x64 and ARM64). Built with **WinUI 3** and **.NET 10**, Remvora prioritizes safety, complete transparency, transactional rollback recovery, and deterministic evidence-based leftover removal.
 
 ---
 
@@ -56,11 +66,78 @@ graph TD
 
 ---
 
+## Repository Structure
+
+Remvora follows Clean Layered Architecture with clean separation of concerns:
+
+```
+Remvora/
+├── .github/                   # GitHub Actions CI/CD workflows
+│   └── workflows/
+│       ├── ci.yml             # Pull request & push automated test validation
+│       └── release.yml        # Multi-architecture automated release publisher
+├── docs/                      # Comprehensive engineering documentation & assets
+│   ├── assets/                # High-resolution logos, emblems, and media
+│   ├── specs/                 # Original technical specifications & plans
+│   ├── architecture.md        # Architectural blueprint and subsystem layers
+│   ├── decisions.md           # Architecture Decision Records (ADRs)
+│   ├── safety-model.md        # System protection and privilege boundary model
+│   └── walkthrough.md         # Milestone walkthrough and test logs
+├── scripts/                   # Turnkey PowerShell management scripts
+│   ├── install.ps1            # Local Windows application installer
+│   ├── package-releases.ps1   # Multi-architecture packaging engine
+│   ├── uninstall.ps1          # Clean application uninstaller
+│   └── update-icons.ps1       # Icon pipeline generating multi-resolution ICO & assets
+├── src/                       # Production application source code
+│   ├── Remvora.App/           # WinUI 3 desktop user interface
+│   ├── Remvora.Application/   # Application use cases, workflows & orchestration
+│   ├── Remvora.Contracts/     # IPC protocols, DTOs & security contracts
+│   ├── Remvora.Core/          # Domain models, scoring & safety policies
+│   ├── Remvora.Elevation/     # Isolated elevated worker process
+│   ├── Remvora.Infrastructure/# SQLite persistence, repositories & migrations
+│   └── Remvora.Windows/       # Win32/COM interop, registry & MSI accessors
+├── tests/                     # Automated unit and integration test suites
+│   ├── Remvora.Application.Tests/
+│   ├── Remvora.Contracts.Tests/
+│   ├── Remvora.Core.Tests/
+│   ├── Remvora.Infrastructure.Tests/
+│   └── Remvora.Windows.Tests/
+├── .gitignore                 # Leak-proof ignore rules for secrets, caches & binaries
+├── Directory.Build.props      # Solution-wide C# 14 & Roslyn analyzer rules
+├── README.md                  # Project overview and documentation
+└── Remvora.slnx               # Modern solution definition
+```
+
+---
+
+## Multi-Architecture Releases
+
+Remvora natively targets all primary Windows hardware architectures:
+
+| Target Architecture | Platform Description | Runtime Identifier | Distribution Artifact |
+| :--- | :--- | :--- | :--- |
+| **Windows x64** | Standard 64-bit PCs (Intel Core, AMD Ryzen) | `win-x64` | `Remvora-v<version>-win-x64.zip` |
+| **Windows ARM64** | ARM-powered PCs (Snapdragon X Elite, Surface Pro Copilot+) | `win-arm64` | `Remvora-v<version>-win-arm64.zip` |
+| **Windows x86** | 32-bit legacy Windows environments | `win-x86` | `Remvora-v<version>-win-x86.zip` |
+
+### Packaging All Architecture Distributions
+
+Generate all release zip archives locally in one command:
+```powershell
+.\scripts\package-releases.ps1 -Version "1.0.0"
+```
+This packages each architecture into the `/releases` directory accompanied by `checksums-sha256.txt`.
+
+### Automated GitHub CI/CD Releases
+The included GitHub Actions workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml)) automatically compiles all 3 target architectures in parallel on `windows-latest` runners whenever a version tag (e.g. `v1.0.0`) is pushed to GitHub, attaching the zipped bundles and SHA-256 hashes to the official GitHub Release.
+
+---
+
 ## How to Install & Run Remvora
 
 ### Option 1: Automated Local Installation (Recommended)
 
-Remvora includes a turnkey PowerShell installation script that compiles self-contained binaries, installs them to your local user directory (`%LocalAppData%\Programs\Remvora`), creates a Start Menu shortcut, and registers Remvora in **Windows Settings > Apps > Installed Apps**:
+Remvora includes a turnkey PowerShell installation script that compiles self-contained binaries, installs them to your local user directory (`%LocalAppData%\Programs\Remvora`), creates a Start Menu shortcut with the application icon, and registers Remvora in **Windows Settings > Apps > Installed Apps**:
 
 ```powershell
 # Run from the repository root:
@@ -107,31 +184,6 @@ dotnet publish src/Remvora.Elevation/Remvora.Elevation.csproj -c Release -r win-
 
 ---
 
----
-
-## Multi-Architecture Releases
-
-Remvora natively targets all primary Windows hardware architectures:
-
-| Target Architecture | Platform Description | Runtime Identifier | Distribution Artifact |
-| :--- | :--- | :--- | :--- |
-| **Windows x64** | Standard 64-bit PCs (Intel Core, AMD Ryzen) | `win-x64` | `Remvora-v<version>-win-x64.zip` |
-| **Windows ARM64** | ARM-powered PCs (Snapdragon X Elite, Surface Pro Copilot+) | `win-arm64` | `Remvora-v<version>-win-arm64.zip` |
-| **Windows x86** | 32-bit legacy Windows environments | `win-x86` | `Remvora-v<version>-win-x86.zip` |
-
-### Packaging All Architecture Distributions
-
-You can generate all release zip archives locally in one command:
-```powershell
-.\scripts\package-releases.ps1 -Version "1.0.0"
-```
-This packages each architecture into the `/releases` directory accompanied by `checksums-sha256.txt`.
-
-### Automated GitHub CI/CD Releases
-The included GitHub Actions workflow ([`.github/workflows/release.yml`](file:///d:/Github/Remvora/.github/workflows/release.yml)) automatically compiles all 3 target architectures in parallel on `windows-latest` runners whenever a version tag (e.g. `v1.0.0`) is pushed to GitHub, attaching the zipped bundles and SHA-256 hashes to the official GitHub Release.
-
----
-
 ## Testing & Quality Assurance
 
 Run the automated test suite covering all layers (Core, Contracts, Application, Infrastructure, Windows):
@@ -149,4 +201,3 @@ dotnet test Remvora.slnx
 
 - **Operating System**: Windows 11 (build 22000+) or Windows 10 (build 1809+), 64-bit or ARM64 architecture.
 - **Development Tooling**: .NET 10 SDK and Windows App SDK.
-

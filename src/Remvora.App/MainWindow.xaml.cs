@@ -57,6 +57,15 @@ public sealed partial class MainWindow : Window
                 case "cleaner":
                     NavFrame.Navigate(typeof(CleanerPage));
                     break;
+                case "hunter":
+                    NavFrame.Navigate(typeof(HunterPage));
+                    break;
+                case "tools":
+                    NavFrame.Navigate(typeof(WindowsToolsPage));
+                    break;
+                case "audit":
+                    NavFrame.Navigate(typeof(AuditLogPage));
+                    break;
                 default:
                     break;
             }

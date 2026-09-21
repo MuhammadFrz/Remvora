@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Remvora.App.Pages.WindowsToolsPage"
+    x:Name="RootPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:tools="using:Remvora.Application.Tools"
+    mc:Ignorable="d">
+
+    <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,*">
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16" Spacing="4">
+            <TextBlock
+                FontWeight="SemiBold"
+                Style="{ThemeResource TitleTextBlockStyle}"
+                Text="Windows Tools Hub" />
+            <TextBlock
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{ThemeResource BodyTextBlockStyle}"
+                Text="Quick access to essential native Windows administrative, diagnostic, and system maintenance utilities." />
+        </StackPanel>
+
+        <!-- Search & Category Filter Toolbar -->
+        <Grid Grid.Row="1" Margin="0,0,0,16" ColumnDefinitions="Auto,*,Auto">
+            <!-- Category Selector Tabs -->
+            <SelectorBar
+                x:Name="CategorySelectorBar"
+                Grid.Column="0"
+                Margin="0,0,16,0"
+                Loaded="CategorySelectorBar_Loaded"
+                SelectionChanged="CategorySelectorBar_SelectionChanged">
+                <SelectorBarItem x:Name="AllToolsItem" Text="All Tools" />
+                <SelectorBarItem Text="System Administration" />
+                <SelectorBarItem Text="Hardware &amp; Diagnostics" />
+                <SelectorBarItem Text="Storage &amp; Maintenance" />
+                <SelectorBarItem Text="Network &amp; Terminal" />
+            </SelectorBar>
+
+            <!-- Search Box -->
+            <AutoSuggestBox
+                Grid.Column="2"
+                Width="280"
+                HorizontalAlignment="Right"
+                PlaceholderText="Search utilities..."
+                QueryIcon="Find"
+                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
+
+        <!-- Notification InfoBar -->
+        <InfoBar
+            Grid.Row="2"
+            Margin="0,0,0,12"
+            IsOpen="{x:Bind ViewModel.IsNotificationOpen, Mode=TwoWay}"
+            Message="{x:Bind ViewModel.NotificationMessage, Mode=OneWay}"
+            Severity="{x:Bind ViewModel.NotificationSeverity, Mode=OneWay}" />
+
+        <!-- Grid of Tool Cards -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+            <GridView
+                ItemsSource="{x:Bind ViewModel.FilteredTools, Mode=OneWay}"
+                SelectionMode="None">
+                <GridView.ItemContainerStyle>
+                    <Style TargetType="GridViewItem">
+                        <Setter Property="Margin" Value="0,0,12,12" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                    </Style>
+                </GridView.ItemContainerStyle>
+                <GridView.ItemTemplate>
+                    <DataTemplate x:DataType="tools:WindowsToolItem">
+                        <Border
+                            Width="360"
+                            MinHeight="180"
+                            Padding="16"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <Grid RowDefinitions="Auto,*,Auto">
+                                <!-- Card Header: Icon, Name, and Executable Chip -->
+                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+                                    <Border
+                                        Grid.Column="0"
+                                        Width="40"
+                                        Height="40"
+                                        Margin="0,0,12,0"
+                                        Background="{ThemeResource AccentFillColorSecondaryBrush}"
+                                        CornerRadius="6">
+                                        <FontIcon
+                                            FontSize="20"
+                                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                            Glyph="{x:Bind IconGlyph}" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontWeight="SemiBold"
+                                            Style="{ThemeResource SubtitleTextBlockStyle}"
+                                            Text="{x:Bind Name}" />
+                                        <TextBlock
+                                            FontFamily="Consolas"
+                                            FontSize="11"
+                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                            Text="{x:Bind Executable}" />
+                                    </StackPanel>
+                                    <Border
+                                        Grid.Column="2"
+                                        Padding="6,2"
+                                        VerticalAlignment="Top"
+                                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                        CornerRadius="4"
+                                        Visibility="{x:Bind RequiresElevation}">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <FontIcon FontSize="10" Foreground="{ThemeResource SystemFillColorCautionBrush}" Glyph="&#xE7EF;" />
+                                            <TextBlock FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Admin" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Card Description -->
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Margin="0,0,0,12"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{ThemeResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind Description}"
+                                    TextWrapping="Wrap" />
+
+                                <!-- Card Action Buttons -->
+                                <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+                                    <Button
+                                        Grid.Column="0"
+                                        HorizontalAlignment="Stretch"
+                                        Margin="0,0,8,0"
+                                        Command="{Binding ElementName=RootPage, Path=ViewModel.LaunchToolCommand}"
+                                        CommandParameter="{x:Bind}"
+                                        Content="Launch"
+                                        Style="{ThemeResource AccentButtonStyle}">
+                                        <Button.KeyboardAccelerators>
+                                            <KeyboardAccelerator Key="Enter" />
+                                        </Button.KeyboardAccelerators>
+                                    </Button>
+                                    <Button
+                                        Grid.Column="1"
+                                        Command="{Binding ElementName=RootPage, Path=ViewModel.LaunchAsAdminCommand}"
+                                        CommandParameter="{x:Bind}"
+                                        ToolTipService.ToolTip="Run as Administrator">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon FontSize="12" Glyph="&#xE7EF;" />
+                                            <TextBlock Text="Run as Admin" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+            </GridView>
+        </ScrollViewer>
+    </Grid>
+</Page>

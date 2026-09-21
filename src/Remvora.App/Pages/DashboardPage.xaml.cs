@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Remvora.App.ViewModels;
 
@@ -12,6 +13,31 @@ public sealed partial class DashboardPage : Page
     {
         InitializeComponent();
         ViewModel = App.Services.GetRequiredService<DashboardViewModel>();
-        Loaded += async (_, _) => await ViewModel.LoadAsync();
+        ViewModel.RequestNavigate += OnRequestNavigate;
+    }
+
+    private async void Page_Loaded(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.LoadAsync();
+    }
+
+    private void OnRequestNavigate(string destination)
+    {
+        var targetType = destination switch
+        {
+            "apps" => typeof(AppsPage),
+            "winapps" => typeof(WindowsAppsPage),
+            "startup" => typeof(StartupPage),
+            "cleaner" => typeof(CleanerPage),
+            "hunter" => typeof(HunterPage),
+            "tools" => typeof(WindowsToolsPage),
+            "audit" => typeof(AuditLogPage),
+            _ => null
+        };
+
+        if (targetType is not null)
+        {
+            Frame.Navigate(targetType);
+        }
     }
 }

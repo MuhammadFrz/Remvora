@@ -110,6 +110,10 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<Remvora.Application.Cleaning.IPrivacyCleaner, Remvora.Windows.Cleaning.WindowsPrivacyCleaner>();
         services.AddSingleton<Remvora.Application.Cleaning.ISecureShredder, Remvora.Windows.Cleaning.WindowsSecureShredder>();
 
+        // Windows Tools Hub & Hunter Mode Services
+        services.AddSingleton<Remvora.Application.Tools.IWindowsToolsService, Remvora.Windows.Tools.WindowsToolsService>();
+        services.AddSingleton<Remvora.Application.Hunter.IHunterModeService, Remvora.Windows.Hunter.WindowsHunterModeService>();
+
         // ViewModels
         services.AddTransient<AppsViewModel>();
         services.AddTransient<DashboardViewModel>();
@@ -117,6 +121,9 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddTransient<StartupViewModel>();
         services.AddTransient<WindowsAppsViewModel>();
         services.AddTransient<CleanerViewModel>();
+        services.AddTransient<HunterViewModel>();
+        services.AddTransient<WindowsToolsViewModel>();
+        services.AddTransient<AuditLogViewModel>();
 
         return services.BuildServiceProvider();
     }

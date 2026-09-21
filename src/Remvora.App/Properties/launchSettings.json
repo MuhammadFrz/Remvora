@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Remvora.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Remvora.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

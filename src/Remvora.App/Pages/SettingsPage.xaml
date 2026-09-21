@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Remvora.App.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Margin="24">
+        <StackPanel Spacing="24" MaxWidth="800" HorizontalAlignment="Left">
+            <StackPanel Spacing="4">
+                <TextBlock Text="Settings" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold"/>
+                <TextBlock Text="Preferences, safety policies, and diagnostic information." Style="{ThemeResource BodySubtleTextBlockStyle}"/>
+            </StackPanel>
+
+            <!-- Safety & Protections -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Safety Invariants" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Protected System Targets" FontWeight="SemiBold"/>
+                        <TextBlock Text="Remvora strictly refuses to alter or delete Windows system directories (C:\Windows, System32, WinSxS), system bootloaders, or critical registry hives (HKLM\SYSTEM, HKLM\SECURITY, etc.)." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Local Data Store -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Local Storage" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Database Path" FontWeight="SemiBold"/>
+                        <TextBlock Text="%LocalAppData%\Remvora\remvora.db (SQLite with Dapper)" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- About -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="About Remvora" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Remvora — Windows Uninstaller &amp; Cleanup Utility" FontWeight="Bold"/>
+                        <TextBlock Text="Version 1.0.0 • .NET 10 LTS • Windows App SDK 2.5.1" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="Designed for Windows 11 x64 with unelevated UI operation and on-demand privileged elevation worker." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Remvora.App/Remvora.App.csproj">
+      <Platform Project="x86" />
+    </Project>
     <Project Path="src/Remvora.Application/Remvora.Application.csproj" />
     <Project Path="src/Remvora.Contracts/Remvora.Contracts.csproj" />
     <Project Path="src/Remvora.Core/Remvora.Core.csproj" />

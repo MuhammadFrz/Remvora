@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Remvora.App.Pages.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Margin="24">
+        <StackPanel Spacing="24" MaxWidth="1000" HorizontalAlignment="Left">
+            <!-- Title -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="System Dashboard" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold"/>
+                <TextBlock Text="Overview of software components and system cleanup health." Style="{ThemeResource BodySubtleTextBlockStyle}"/>
+            </StackPanel>
+
+            <!-- Metric Cards Grid -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Total Apps Card -->
+                <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,8,0">
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE71D;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                            <TextBlock Text="Installed Apps" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.TotalAppsCount, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Desktop Apps Card -->
+                <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="4,0,4,0">
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE7F4;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                            <TextBlock Text="Desktop Software" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.DesktopAppsCount, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Store Apps Card -->
+                <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="4,0,4,0">
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE719;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                            <TextBlock Text="Store Apps" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.StoreAppsCount, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Total Size Card -->
+                <Border Grid.Column="3" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="8,0,0,0">
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xEDA2;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                            <TextBlock Text="Estimated Footprint" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.TotalInstalledSizeText, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Safety & Principle Banner -->
+            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Evidence-Based Architecture" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                        <TextBlock Text="Remvora strictly avoids aggressive blind string searches. All leftover scans correlate direct registry keys, monitored snapshots, and executable paths with clear confidence ratings." Style="{ThemeResource BodySubtleTextBlockStyle}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

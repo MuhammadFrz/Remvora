@@ -48,6 +48,12 @@ public sealed partial class MainWindow : Window
                 case "apps":
                     NavFrame.Navigate(typeof(AppsPage));
                     break;
+                case "winapps":
+                    NavFrame.Navigate(typeof(WindowsAppsPage));
+                    break;
+                case "startup":
+                    NavFrame.Navigate(typeof(StartupPage));
+                    break;
                 default:
                     break;
             }

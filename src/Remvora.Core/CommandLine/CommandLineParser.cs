@@ -63,4 +63,7 @@ public static class CommandLineParser
 
         return new ParsedCommandLine(span.ToString(), string.Empty);
     }
+
+    public static string? ExtractExecutablePath(string? rawCommandLine) =>
+        Parse(rawCommandLine)?.ExecutablePath;
 }

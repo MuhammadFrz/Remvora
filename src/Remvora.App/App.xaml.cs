@@ -101,10 +101,16 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<IApplicationRepository, SqliteApplicationRepository>();
         services.AddSingleton<Remvora.Application.Auditing.IAuditLogRepository, SqliteAuditLogRepository>();
 
+        // Startup & Windows Apps Managers
+        services.AddSingleton<Remvora.Application.Startup.IStartupManager, Remvora.Windows.Startup.WindowsStartupManager>();
+        services.AddSingleton<Remvora.Application.WindowsApps.IWindowsAppsManager, Remvora.Windows.WindowsApps.WindowsPackageAppManager>();
+
         // ViewModels
         services.AddTransient<AppsViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<CleanupPreviewViewModel>();
+        services.AddTransient<StartupViewModel>();
+        services.AddTransient<WindowsAppsViewModel>();
 
         return services.BuildServiceProvider();
     }

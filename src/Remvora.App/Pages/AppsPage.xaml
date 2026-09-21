@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
+    x:Name="RootPage"
     x:Class="Remvora.App.Pages.AppsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:Remvora.App.ViewModels"
+    xmlns:proc="using:Remvora.Application.Processes"
     mc:Ignorable="d">
 
     <Grid Margin="24">
@@ -24,7 +26,7 @@
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Vertical" Spacing="4">
                 <TextBlock Text="Installed Applications" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="SemiBold"/>
-                <TextBlock Text="Discover, manage, and inspect installed software and packaged components." Style="{ThemeResource BodySubtleTextBlockStyle}"/>
+                <TextBlock Text="Safe, evidence-based software uninstallation and residual cleanup engine." Style="{ThemeResource BodySubtleTextBlockStyle}"/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <Button Command="{x:Bind ViewModel.RefreshCommand}">
@@ -77,7 +79,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MinWidth="400"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="380" MinWidth="320"/>
+                <ColumnDefinition Width="380" MinWidth="340"/>
             </Grid.ColumnDefinitions>
 
             <!-- Applications Virtualized List -->
@@ -93,6 +95,32 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
+
+                            <Grid.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Complete Uninstall" Command="{Binding ElementName=RootPage, Path=ViewModel.StartCompleteUninstallCommand}" CommandParameter="{x:Bind}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE74D;"/>
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="Forced Uninstall" Command="{Binding ElementName=RootPage, Path=ViewModel.StartForcedUninstallCommand}" CommandParameter="{x:Bind}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE894;"/>
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="Standard Uninstall" Command="{Binding ElementName=RootPage, Path=ViewModel.StartStandardUninstallCommand}" CommandParameter="{x:Bind}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE71A;"/>
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutSeparator/>
+                                    <MenuFlyoutItem Text="Open Install Location" Command="{Binding ElementName=RootPage, Path=ViewModel.OpenInstallLocationCommand}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xED25;"/>
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                </MenuFlyout>
+                            </Grid.ContextFlyout>
 
                             <!-- App Avatar Initials -->
                             <Border
@@ -147,6 +175,64 @@
                             <TextBlock Text="{x:Bind ViewModel.SelectedItem.Publisher, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
 
+                        <!-- Primary Uninstall Actions Card -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Uninstallation Actions" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+
+                                <!-- Complete Uninstall -->
+                                <Button
+                                    Command="{x:Bind ViewModel.StartCompleteUninstallCommand}"
+                                    CommandParameter="{x:Null}"
+                                    Style="{ThemeResource AccentButtonStyle}"
+                                    HorizontalAlignment="Stretch">
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE74D;" Margin="0,0,10,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="Complete Uninstall" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Uninstaller + leftover scan &amp; safe removal" Style="{ThemeResource CaptionTextBlockStyle}" Opacity="0.8"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+
+                                <!-- Secondary Actions Row -->
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Forced Uninstall -->
+                                    <Button
+                                        Grid.Column="0"
+                                        Command="{x:Bind ViewModel.StartForcedUninstallCommand}"
+                                        CommandParameter="{x:Null}"
+                                        HorizontalAlignment="Stretch">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon Glyph="&#xE894;"/>
+                                            <TextBlock Text="Forced"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Standard Uninstall -->
+                                    <Button
+                                        Grid.Column="1"
+                                        Command="{x:Bind ViewModel.StartStandardUninstallCommand}"
+                                        CommandParameter="{x:Null}"
+                                        HorizontalAlignment="Stretch">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon Glyph="&#xE71A;"/>
+                                            <TextBlock Text="Standard"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Key Attributes Card -->
                         <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="6" Padding="12">
                             <StackPanel Spacing="8">
@@ -184,24 +270,11 @@
                                 </StackPanel>
                             </Button>
                         </StackPanel>
-
-                        <!-- Uninstall Commands Info -->
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Uninstall Metadata" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                            <Grid>
-                                <TextBlock Text="Standard Uninstall" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                <TextBlock Text="{x:Bind ViewModel.SelectedItem.CanUninstall, Mode=OneWay}" HorizontalAlignment="Right"/>
-                            </Grid>
-                            <Grid>
-                                <TextBlock Text="Quiet Uninstall" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                <TextBlock Text="{x:Bind ViewModel.SelectedItem.CanQuietUninstall, Mode=OneWay}" HorizontalAlignment="Right"/>
-                            </Grid>
-                        </StackPanel>
                     </StackPanel>
                 </Border>
             </ScrollViewer>
 
-            <!-- Loading Progress Overlay -->
+            <!-- Inventory Loading Overlay -->
             <Border
                 Grid.ColumnSpan="3"
                 Background="{ThemeResource LayerFillColorDefaultBrush}"
@@ -222,6 +295,263 @@
             </Grid.ColumnDefinitions>
             <TextBlock Text="{x:Bind ViewModel.SummaryText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
             <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.TotalSizeText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+        </Grid>
+
+        <!-- ======================================================== -->
+        <!-- INTERACTIVE WORKFLOW MODAL OVERLAYS (PHASES 9 & 10)     -->
+        <!-- ======================================================== -->
+        <Grid
+            Grid.RowSpan="4"
+            Background="#70000000"
+            Visibility="{x:Bind ViewModel.IsFlowActive, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+
+            <!-- 1. Running Processes Warning Modal -->
+            <Border
+                Width="520"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="24"
+                Visibility="{x:Bind ViewModel.FlowStage, Mode=OneWay, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=ProcessesWarning}">
+                <StackPanel Spacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon Glyph="&#xE7BA;" FontSize="28" Foreground="{ThemeResource SystemFillColorCautionBrush}"/>
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Running Processes Detected" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Active instances of this application are running." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Text="To prevent file lock conflicts during uninstallation, close these processes:" Style="{ThemeResource BodyTextBlockStyle}"/>
+
+                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="6" MaxHeight="180" Padding="8">
+                        <ListView ItemsSource="{x:Bind ViewModel.ActiveProcesses, Mode=OneWay}" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="proc:RunningProcessInfo">
+                                    <Grid Padding="4,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE7F4;" FontSize="14" Margin="0,0,8,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="1" Text="{x:Bind ProcessName}" FontWeight="Medium"/>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind ProcessId}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button Content="Cancel" Command="{x:Bind ViewModel.CancelFlowCommand}"/>
+                        <Button Content="Ignore &amp; Continue" Command="{x:Bind ViewModel.IgnoreAndContinueCommand}"/>
+                        <Button Content="Close Processes &amp; Continue" Style="{ThemeResource AccentButtonStyle}" Command="{x:Bind ViewModel.TerminateAndContinueCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 2. Workflow In-Progress Modal -->
+            <Border
+                Width="480"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="32"
+                Visibility="{x:Bind ViewModel.FlowStage, Mode=OneWay, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=ExecutingWorkflow}">
+                <StackPanel Spacing="20" HorizontalAlignment="Center">
+                    <ProgressRing IsActive="True" Width="56" Height="56" HorizontalAlignment="Center"/>
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.FlowTitle, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold" TextAlignment="Center"/>
+                        <TextBlock Text="{x:Bind ViewModel.FlowStatusMessage, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" MaxWidth="400" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <Button Content="Cancel" Command="{x:Bind ViewModel.CancelFlowCommand}" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 3. Leftover Traces Review & Selection Modal -->
+            <Border
+                Width="820" MaxHeight="640"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="24"
+                Visibility="{x:Bind ViewModel.FlowStage, Mode=OneWay, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=ReviewingLeftovers}">
+                <Grid RowSpacing="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{x:Bind ViewModel.FlowTitle, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                            <TextBlock Text="Review identified residual items before permanent cleanup." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <Border Grid.Column="1" Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="6" Padding="10,4" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind ViewModel.CleanupPreview.ReclaimableSpaceText, Mode=OneWay}" Foreground="White" FontWeight="SemiBold"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- Filter & Batch Selection Bar -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Filter Tabs -->
+                        <RadioButtons SelectedItem="{x:Bind ViewModel.CleanupPreview.FilterKind, Mode=TwoWay}" MaxColumns="5">
+                            <x:String>All</x:String>
+                            <x:String>Files</x:String>
+                            <x:String>Registry</x:String>
+                            <x:String>Services</x:String>
+                            <x:String>Shortcuts</x:String>
+                        </RadioButtons>
+
+                        <!-- Batch Selection Buttons -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                            <Button Content="Recommended" Command="{x:Bind ViewModel.CleanupPreview.SelectRecommendedCommand}"/>
+                            <Button Content="All" Command="{x:Bind ViewModel.CleanupPreview.SelectAllCommand}"/>
+                            <Button Content="None" Command="{x:Bind ViewModel.CleanupPreview.DeselectAllCommand}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Candidates List -->
+                    <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="4" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <ListView ItemsSource="{x:Bind ViewModel.CleanupPreview.FilteredCandidates, Mode=OneWay}" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:CandidateItemViewModel">
+                                    <Grid Padding="8,8" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Selection Checkbox -->
+                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" IsEnabled="{x:Bind CanToggleSelection}"/>
+
+                                        <!-- Kind Glyph -->
+                                        <FontIcon Grid.Column="1" Glyph="{x:Bind KindGlyph}" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                        <!-- Target Path & Evidence -->
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Text="{x:Bind Target}" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{x:Bind EvidenceSummary}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+
+                                        <!-- Confidence Badge -->
+                                        <Border Grid.Column="3" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind ConfidenceText}" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                        </Border>
+
+                                        <!-- Size -->
+                                        <TextBlock Grid.Column="4" Text="{x:Bind SizeFormatted}" FontWeight="SemiBold" VerticalAlignment="Center" MinWidth="60" TextAlignment="Right"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+
+                    <!-- Bottom Action Bar -->
+                    <Grid Grid.Row="3" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="{x:Bind ViewModel.CleanupPreview.SelectedCandidatesCount, Mode=OneWay}" VerticalAlignment="Center" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <Button Content="Cancel" Command="{x:Bind ViewModel.CancelFlowCommand}"/>
+                            <Button Content="Skip Cleanup" Command="{x:Bind ViewModel.SkipCleanupCommand}"/>
+                            <Button Content="Clean Up Selected Items" Style="{ThemeResource AccentButtonStyle}" Command="{x:Bind ViewModel.ConfirmCleanupCommand}"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- 4. Execution of Cleanup Modal -->
+            <Border
+                Width="480"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="32"
+                Visibility="{x:Bind ViewModel.FlowStage, Mode=OneWay, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=ExecutingCleanup}">
+                <StackPanel Spacing="20" HorizontalAlignment="Center">
+                    <ProgressRing IsActive="True" Width="56" Height="56" HorizontalAlignment="Center"/>
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.FlowTitle, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold" TextAlignment="Center"/>
+                        <TextBlock Text="{x:Bind ViewModel.FlowStatusMessage, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" MaxWidth="400" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 5. Completed Summary Modal -->
+            <Border
+                Width="500"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="28"
+                Visibility="{x:Bind ViewModel.FlowStage, Mode=OneWay, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=CompletedSummary}">
+                <StackPanel Spacing="20">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <Border Width="48" Height="48" CornerRadius="24" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE73E;" FontSize="24" Foreground="{ThemeResource SystemFillColorSuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{x:Bind ViewModel.SummaryTitle, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                            <TextBlock Text="Operation finished." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Text="{x:Bind ViewModel.SummaryDetails, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap"/>
+
+                    <!-- Reboot Required InfoBar -->
+                    <InfoBar
+                        IsOpen="{x:Bind ViewModel.RebootRequired, Mode=OneWay}"
+                        Severity="Warning"
+                        Title="System Restart Recommended"
+                        Message="Some locked files or services are scheduled for removal on the next Windows reboot."
+                        IsClosable="False"/>
+
+                    <Grid Margin="0,12,0,0">
+                        <Button
+                            Content="Undo / Rollback Cleanup"
+                            Command="{x:Bind ViewModel.RollbackLastTransactionCommand}"
+                            Visibility="{x:Bind ViewModel.CanRollback, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                        <Button
+                            Content="Done"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.CloseSummaryCommand}"
+                            HorizontalAlignment="Right"
+                            MinWidth="100"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </Page>

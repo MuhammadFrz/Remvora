@@ -45,22 +45,27 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Search -->
+            <!-- Search (Bug 7: Fixed height, padding, and centered text) -->
             <TextBox
+                Height="36"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                Padding="10,6,10,6"
                 PlaceholderText="Search startup entries..."
                 Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
             </TextBox>
 
-            <!-- Category Filter Tabs -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0">
-                <RadioButtons SelectedItem="{x:Bind ViewModel.SelectedFilter, Mode=TwoWay}" MaxColumns="6">
+            <!-- Filter Dropdown (Bug 5) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="Filter:" VerticalAlignment="Center" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                <ComboBox SelectedItem="{x:Bind ViewModel.SelectedFilter, Mode=TwoWay}" Width="150" Height="36" VerticalAlignment="Center">
                     <x:String>All</x:String>
                     <x:String>Enabled</x:String>
                     <x:String>Disabled</x:String>
                     <x:String>Registry</x:String>
                     <x:String>Folder</x:String>
                     <x:String>High Impact</x:String>
-                </RadioButtons>
+                </ComboBox>
             </StackPanel>
 
             <!-- Stats Badges -->

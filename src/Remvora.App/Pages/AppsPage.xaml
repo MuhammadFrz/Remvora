@@ -41,36 +41,73 @@
         <!-- Search and Filter Bar -->
         <Grid Grid.Row="1" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="320"/>
+                <ColumnDefinition Width="300"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Search -->
+            <!-- Search (Bug 7: Fixed height, padding, and centered text) -->
             <TextBox
+                Height="36"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                Padding="10,6,10,6"
                 PlaceholderText="Search by name or publisher..."
                 Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
             </TextBox>
 
-            <!-- Category Filter Tabs -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0">
-                <RadioButtons SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}" MaxColumns="4">
-                    <x:String>All</x:String>
-                    <x:String>Desktop</x:String>
-                    <x:String>Store</x:String>
-                    <x:String>Large</x:String>
-                </RadioButtons>
+            <!-- Category Filter Multi-Select DropDown (Bug 5) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="16,0,0,0" VerticalAlignment="Center">
+                <DropDownButton
+                    Height="36"
+                    VerticalAlignment="Center"
+                    Content="{x:Bind ViewModel.FilterSummaryText, Mode=OneWay}">
+                    <DropDownButton.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedLeft">
+                            <StackPanel Spacing="8" MinWidth="200" Padding="4">
+                                <TextBlock Text="Filter by Application Type" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                <CheckBox Content="Desktop Applications" IsChecked="{x:Bind ViewModel.FilterDesktop, Mode=TwoWay}"/>
+                                <CheckBox Content="Windows Store Packages" IsChecked="{x:Bind ViewModel.FilterStore, Mode=TwoWay}"/>
+                                <MenuFlyoutSeparator Margin="0,4"/>
+                                <CheckBox Content="Large Applications (&gt;500 MB)" IsChecked="{x:Bind ViewModel.FilterLarge, Mode=TwoWay}"/>
+                                <CheckBox Content="System Components" IsChecked="{x:Bind ViewModel.FilterSystem, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </Flyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+
+                <CheckBox
+                    Content="Select All"
+                    IsChecked="{x:Bind ViewModel.IsAllSelected, Mode=TwoWay}"
+                    Command="{x:Bind ViewModel.ToggleSelectAllCommand}"
+                    VerticalAlignment="Center"/>
             </StackPanel>
 
-            <!-- Sort By -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <!-- Sort By and View Mode Toggle (Bug 1 & 5) -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                 <TextBlock Text="Sort by:" VerticalAlignment="Center" Style="{ThemeResource CaptionTextBlockStyle}"/>
-                <ComboBox SelectedItem="{x:Bind ViewModel.SelectedSort, Mode=TwoWay}" Width="130">
+                <ComboBox SelectedItem="{x:Bind ViewModel.SelectedSort, Mode=TwoWay}" Width="120" Height="36" VerticalAlignment="Center">
                     <x:String>Name</x:String>
                     <x:String>Publisher</x:String>
                     <x:String>Size</x:String>
                     <x:String>Date</x:String>
                 </ComboBox>
+
+                <!-- View Mode Toggle Buttons (List vs Grid) -->
+                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                    <Button
+                        Height="36" Padding="8,6"
+                        ToolTipService.ToolTip="List View"
+                        Command="{x:Bind ViewModel.SetListViewCommand}">
+                        <FontIcon Glyph="&#xE8FD;" FontSize="14"/>
+                    </Button>
+                    <Button
+                        Height="36" Padding="8,6"
+                        ToolTipService.ToolTip="Grid View"
+                        Command="{x:Bind ViewModel.SetGridViewCommand}">
+                        <FontIcon Glyph="&#xF0E2;" FontSize="14"/>
+                    </Button>
+                </StackPanel>
             </StackPanel>
         </Grid>
 
@@ -82,15 +119,17 @@
                 <ColumnDefinition Width="380" MinWidth="340"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Applications Virtualized List -->
+            <!-- Applications List (when IsGridView is False) -->
             <ListView
                 ItemsSource="{x:Bind ViewModel.FilteredApplications, Mode=OneWay}"
                 SelectedItem="{x:Bind ViewModel.SelectedItem, Mode=TwoWay}"
-                SelectionMode="Single">
+                SelectionMode="Single"
+                Visibility="{x:Bind ViewModel.IsGridView, Mode=OneWay, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ApplicationItemViewModel">
                         <Grid Padding="8,10">
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="44"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -122,21 +161,37 @@
                                 </MenuFlyout>
                             </Grid.ContextFlyout>
 
-                            <!-- App Avatar Initials -->
-                            <Border
-                                Width="36" Height="36"
-                                CornerRadius="18"
-                                Background="{ThemeResource AccentFillColorDefaultBrush}"
-                                HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <TextBlock
-                                    Text="{x:Bind Initials}"
-                                    Foreground="White"
-                                    FontWeight="SemiBold"
+                            <!-- Selection Checkbox -->
+                            <CheckBox
+                                IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
+                                VerticalAlignment="Center"
+                                Margin="0,0,8,0"
+                                MinWidth="28"/>
+
+                            <!-- App Icon with Initials Fallback (Bug 1) -->
+                            <Grid Grid.Column="1" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Border
+                                    Width="36" Height="36"
+                                    CornerRadius="18"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    Visibility="{x:Bind HasIcon, Mode=OneWay, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+                                    <TextBlock
+                                        Text="{x:Bind Initials}"
+                                        Foreground="White"
+                                        FontWeight="SemiBold"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <Image
+                                    Source="{x:Bind IconSource, Mode=OneWay}"
+                                    Width="32" Height="32"
+                                    Stretch="Uniform"
+                                    Visibility="{x:Bind HasIcon, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
+                            </Grid>
 
                             <!-- Name and Publisher -->
-                            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Spacing="2">
+                            <StackPanel Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Spacing="2">
                                 <TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBlock Text="{x:Bind Publisher}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
@@ -146,7 +201,7 @@
                             </StackPanel>
 
                             <!-- Badges (Size & Type) -->
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                 <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="6,2">
                                     <TextBlock Text="{x:Bind ScopeDescription}" Style="{ThemeResource CaptionTextBlockStyle}"/>
                                 </Border>
@@ -156,6 +211,123 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
+
+            <!-- Applications Grid View (when IsGridView is True) (Bug 1) -->
+            <GridView
+                ItemsSource="{x:Bind ViewModel.FilteredApplications, Mode=OneWay}"
+                SelectedItem="{x:Bind ViewModel.SelectedItem, Mode=TwoWay}"
+                SelectionMode="Single"
+                Padding="0,0,10,12"
+                HorizontalAlignment="Stretch"
+                Visibility="{x:Bind ViewModel.IsGridView, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <GridView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsWrapGrid Orientation="Horizontal" HorizontalAlignment="Left"/>
+                    </ItemsPanelTemplate>
+                </GridView.ItemsPanel>
+                <GridView.ItemContainerStyle>
+                    <Style TargetType="GridViewItem">
+                        <Setter Property="Margin" Value="0,0,10,10"/>
+                        <Setter Property="Padding" Value="0"/>
+                    </Style>
+                </GridView.ItemContainerStyle>
+                <GridView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ApplicationItemViewModel">
+                        <Border
+                            Width="195" Height="175"
+                            Padding="12"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <Border.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Complete Uninstall" Command="{Binding ElementName=RootPage, Path=ViewModel.StartCompleteUninstallCommand}" CommandParameter="{x:Bind}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE74D;"/>
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="Forced Uninstall" Command="{Binding ElementName=RootPage, Path=ViewModel.StartForcedUninstallCommand}" CommandParameter="{x:Bind}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE894;"/>
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="Standard Uninstall" Command="{Binding ElementName=RootPage, Path=ViewModel.StartStandardUninstallCommand}" CommandParameter="{x:Bind}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE71A;"/>
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutSeparator/>
+                                    <MenuFlyoutItem Text="Open Install Location" Command="{Binding ElementName=RootPage, Path=ViewModel.OpenInstallLocationCommand}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xED25;"/>
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                </MenuFlyout>
+                            </Border.ContextFlyout>
+
+                            <Grid RowDefinitions="Auto,*,Auto">
+                                <!-- Selection Checkbox -->
+                                <CheckBox
+                                    IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Margin="0,-6,-6,0"
+                                    MinWidth="24"
+                                    MinHeight="24"
+                                    Canvas.ZIndex="2"/>
+
+                                <!-- Icon / Initials -->
+                                <Grid Width="48" Height="48" HorizontalAlignment="Center" Margin="0,4,0,8">
+                                    <Border
+                                        Width="48" Height="48"
+                                        CornerRadius="24"
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                        Visibility="{x:Bind HasIcon, Mode=OneWay, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+                                        <TextBlock
+                                            Text="{x:Bind Initials}"
+                                            Foreground="White"
+                                            FontSize="18"
+                                            FontWeight="Bold"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Image
+                                        Source="{x:Bind IconSource, Mode=OneWay}"
+                                        Width="44" Height="44"
+                                        Stretch="Uniform"
+                                        Visibility="{x:Bind HasIcon, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Name & Publisher -->
+                                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Spacing="2">
+                                    <TextBlock
+                                        Text="{x:Bind DisplayName}"
+                                        FontWeight="SemiBold"
+                                        TextAlignment="Center"
+                                        TextWrapping="Wrap"
+                                        MaxLines="2"
+                                        TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock
+                                        Text="{x:Bind Publisher}"
+                                        Style="{ThemeResource CaptionTextBlockStyle}"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        TextAlignment="Center"
+                                        TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <!-- Size & Scope Badge -->
+                                <Grid Grid.Row="2" Margin="0,6,0,0">
+                                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                        <TextBlock Text="{x:Bind ScopeDescription}" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                    </Border>
+                                    <TextBlock Text="{x:Bind FormattedSize}" FontWeight="SemiBold" Style="{ThemeResource CaptionTextBlockStyle}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+            </GridView>
 
             <!-- Splitter Separator -->
             <Border Grid.Column="1" Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="12,0"/>
@@ -285,6 +457,42 @@
                     <TextBlock Text="{x:Bind ViewModel.ProgressText, Mode=OneWay}" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
                 </StackPanel>
             </Border>
+
+            <!-- Floating Batch Action Bar -->
+            <Border
+                Grid.ColumnSpan="3"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,24"
+                Padding="16,10"
+                Background="{StaticResource ModalCardBackgroundBrush}"
+                BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="24"
+                Visibility="{x:Bind ViewModel.HasSelectedApps, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Border Width="24" Height="24" CornerRadius="12" Background="{ThemeResource AccentFillColorDefaultBrush}">
+                            <TextBlock Text="{x:Bind ViewModel.SelectedAppsCount, Mode=OneWay}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                        </Border>
+                        <TextBlock Text="Selected" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="•" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Bind ViewModel.SelectedAppsSizeText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Button Content="Clear" Command="{x:Bind ViewModel.ClearSelectionCommand}" VerticalAlignment="Center"/>
+
+                    <Button
+                        Style="{ThemeResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.StartBatchUninstallCommand}"
+                        VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE74D;"/>
+                            <TextBlock Text="Batch Uninstall"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
         </Grid>
 
         <!-- Status Bar -->
@@ -302,15 +510,15 @@
         <!-- ======================================================== -->
         <Grid
             Grid.RowSpan="4"
-            Background="#70000000"
+            Background="#B8000000"
             Visibility="{x:Bind ViewModel.IsFlowActive, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
 
             <!-- 1. Running Processes Warning Modal -->
             <Border
                 Width="520"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{StaticResource ModalCardBackgroundBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="24"
@@ -357,8 +565,8 @@
             <Border
                 Width="480"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{StaticResource ModalCardBackgroundBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="32"
@@ -377,8 +585,8 @@
             <Border
                 Width="820" MaxHeight="640"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{StaticResource ModalCardBackgroundBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="24"
@@ -491,8 +699,8 @@
             <Border
                 Width="480"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{StaticResource ModalCardBackgroundBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="32"
@@ -510,8 +718,8 @@
             <Border
                 Width="500"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{StaticResource ModalCardBackgroundBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="28"
@@ -550,6 +758,137 @@
                             HorizontalAlignment="Right"
                             MinWidth="100"/>
                     </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ======================================================== -->
+        <!-- BATCH UNINSTALL WORKFLOW MODAL OVERLAYS                  -->
+        <!-- ======================================================== -->
+        <Grid
+            Grid.RowSpan="4"
+            Background="#B8000000"
+            Visibility="{x:Bind ViewModel.IsBatchModalOpen, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+
+            <!-- 1. Running Batch Modal -->
+            <Border
+                Width="540"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{StaticResource ModalCardBackgroundBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="28"
+                Visibility="{x:Bind ViewModel.IsBatchRunning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Spacing="20">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <ProgressRing IsActive="True" Width="40" Height="40" VerticalAlignment="Center"/>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Batch Uninstallation in Progress" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                            <TextBlock Text="{x:Bind ViewModel.BatchStatusMessage, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <ProgressBar Value="{x:Bind ViewModel.BatchProgressPercent, Mode=OneWay}" Maximum="100" Height="6"/>
+
+                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="12" MaxHeight="220">
+                        <ListView ItemsSource="{x:Bind ViewModel.BatchQueue, Mode=OneWay}" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BatchAppItemViewModel">
+                                    <Grid Padding="4,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{x:Bind FormattedSize}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Status, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" FontWeight="Medium" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+
+                    <Button Content="Cancel Remaining" Command="{x:Bind ViewModel.CancelBatchCommand}" HorizontalAlignment="Right"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 2. Batch Summary Modal -->
+            <Border
+                Width="560"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{StaticResource ModalCardBackgroundBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="28"
+                Visibility="{x:Bind ViewModel.IsBatchSummaryOpen, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Spacing="20">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <Border Width="48" Height="48" CornerRadius="24" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE73E;" FontSize="24" Foreground="{ThemeResource SystemFillColorSuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Batch Uninstallation Completed" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                            <TextBlock Text="Selected applications processing finished." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Metrics Badges -->
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                <TextBlock Text="{x:Bind ViewModel.BatchSuccessCount, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource SystemFillColorSuccessBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Succeeded" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                <TextBlock Text="{x:Bind ViewModel.BatchFailureCount, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource SystemFillColorCriticalBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Failed" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                <TextBlock Text="{x:Bind ViewModel.BatchReclaimedSizeText, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Reclaimed" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Error Isolation & Diagnostic Log Area -->
+                    <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.BatchFailureCount, Mode=OneWay, Converter={StaticResource GreaterThanZeroToVisibilityConverter}}">
+                        <TextBlock Text="Uninstallation Failures &amp; Error Log:" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="10" MaxHeight="160">
+                            <ListView ItemsSource="{x:Bind ViewModel.BatchFailedApps, Mode=OneWay}" SelectionMode="None">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BatchAppItemViewModel">
+                                        <StackPanel Padding="4,6" Spacing="2">
+                                            <TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{x:Bind ErrorMessage}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource SystemFillColorCriticalBrush}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
+                    </StackPanel>
+
+                    <Button
+                        Content="Done"
+                        Style="{ThemeResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.CloseBatchSummaryCommand}"
+                        HorizontalAlignment="Right"
+                        MinWidth="100"/>
                 </StackPanel>
             </Border>
         </Grid>

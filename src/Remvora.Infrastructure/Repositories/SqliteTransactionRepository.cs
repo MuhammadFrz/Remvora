@@ -2,6 +2,8 @@ using System.Globalization;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Remvora.Application.Transactions;
+using Remvora.Contracts;
+using Remvora.Core.Domain.Results;
 using Remvora.Core.Domain.Transactions;
 using Remvora.Infrastructure.Database;
 
@@ -10,7 +12,7 @@ namespace Remvora.Infrastructure.Repositories;
 /// <summary>
 /// SQLite-backed persistence repository for operation transactions and journal items.
 /// </summary>
-public sealed class SqliteTransactionRepository : ITransactionRepository
+public sealed partial class SqliteTransactionRepository : ITransactionRepository
 {
     private readonly IDbConnectionFactory _connectionFactory;
     private readonly ILogger<SqliteTransactionRepository> _logger;
@@ -253,6 +255,50 @@ public sealed class SqliteTransactionRepository : ITransactionRepository
         var cmd = new CommandDefinition(insertItemSql, itemEntity, cancellationToken: cancellationToken);
         await connection.ExecuteAsync(cmd).ConfigureAwait(false);
     }
+
+    public async Task<OperationResult> DeleteTransactionAsync(Guid transactionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tx = await GetTransactionAsync(transactionId, cancellationToken).ConfigureAwait(false);
+            if (tx == null)
+                return OperationResult.Failure(ErrorCode.NotFound, "Transaction not found.");
+
+            // 1. Delete backed up files from disk
+            foreach (var item in tx.Items)
+            {
+                if (!string.IsNullOrWhiteSpace(item.BackupPath) && File.Exists(item.BackupPath))
+                {
+                    try { File.Delete(item.BackupPath); } catch { }
+                }
+            }
+
+            // Delete journal directory if exists
+            if (!string.IsNullOrWhiteSpace(tx.JournalPath) && Directory.Exists(tx.JournalPath))
+            {
+                try { Directory.Delete(tx.JournalPath, recursive: true); } catch { }
+            }
+
+            using var connection = _connectionFactory.CreateConnection();
+            var transIdStr = transactionId.ToString();
+
+            const string deleteItemsSql = "DELETE FROM transaction_items WHERE transaction_id = @Id;";
+            await connection.ExecuteAsync(new CommandDefinition(deleteItemsSql, new { Id = transIdStr }, cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+            const string deleteTransSql = "DELETE FROM transactions WHERE id = @Id;";
+            await connection.ExecuteAsync(new CommandDefinition(deleteTransSql, new { Id = transIdStr }, cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+            return OperationResult.Success();
+        }
+        catch (Exception ex)
+        {
+            LogDeleteTransactionFailed(_logger, ex, transactionId);
+            return OperationResult.Failure(ErrorCode.OperationFailed, ex.Message);
+        }
+    }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "Failed to delete transaction {TransactionId}")]
+    private static partial void LogDeleteTransactionFailed(ILogger logger, Exception ex, Guid transactionId);
 
     private sealed class TransactionEntity
     {

@@ -45,20 +45,35 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Search -->
+            <!-- Search (Bug 7: Centered text, 36px height) -->
             <TextBox
+                Height="36"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                Padding="10,6,10,6"
                 PlaceholderText="Search Windows packages..."
                 Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
             </TextBox>
 
-            <!-- Category Filter Tabs -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0">
-                <RadioButtons SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}" MaxColumns="4">
-                    <x:String>All</x:String>
-                    <x:String>Bloatware</x:String>
-                    <x:String>Store Apps</x:String>
-                    <x:String>System</x:String>
-                </RadioButtons>
+            <!-- Category Filter Multi-Select DropDown (Bug 5) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0" VerticalAlignment="Center">
+                <DropDownButton
+                    Height="36"
+                    VerticalAlignment="Center"
+                    Content="{x:Bind ViewModel.FilterSummaryText, Mode=OneWay}">
+                    <DropDownButton.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedLeft">
+                            <StackPanel Spacing="8" MinWidth="190" Padding="4">
+                                <TextBlock Text="Filter Packages" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                <CheckBox Content="Bloatware Candidates" IsChecked="{x:Bind ViewModel.FilterBloatware, Mode=TwoWay}"/>
+                                <CheckBox Content="Store Applications" IsChecked="{x:Bind ViewModel.FilterStore, Mode=TwoWay}"/>
+                                <CheckBox Content="Provisioned Packages" IsChecked="{x:Bind ViewModel.FilterProvisioned, Mode=TwoWay}"/>
+                                <MenuFlyoutSeparator Margin="0,4"/>
+                                <CheckBox Content="Protected System Components" IsChecked="{x:Bind ViewModel.FilterSystem, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </Flyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
             </StackPanel>
 
             <!-- Stats Badges -->

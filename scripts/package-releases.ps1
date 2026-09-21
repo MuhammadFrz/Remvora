@@ -25,6 +25,7 @@ if (-not (Test-Path $releasesDir)) {
 }
 
 $checksums = @()
+$packagesManifest = @{}
 
 foreach ($arch in $Architectures) {
     Write-Host "`n========================================================" -ForegroundColor Cyan
@@ -81,15 +82,67 @@ foreach ($arch in $Architectures) {
     Write-Host "Compressing to $zipFileName..." -ForegroundColor Green
     Compress-Archive -Path "$stagingDir\*" -DestinationPath $zipFilePath -CompressionLevel Optimal
 
-    # 6. Compute SHA-256 Checksum
+    # 6. Compute Full Package SHA-256 Checksum
     $hash = (Get-FileHash -Path $zipFilePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $fullSize = (Get-Item $zipFilePath).Length
     $checksums += "$hash  $zipFileName"
-    Write-Host "SHA-256: $hash" -ForegroundColor Gray
+    Write-Host "Full SHA-256: $hash" -ForegroundColor Gray
+
+    # 7. Create Delta Archive (only Remvora assemblies and assets ~2-3 MB)
+    $deltaStagingDir = Join-Path $rootDir "publish\$arch-delta"
+    if (Test-Path $deltaStagingDir) { Remove-Item -Path $deltaStagingDir -Recurse -Force }
+    New-Item -ItemType Directory -Path $deltaStagingDir -Force | Out-Null
+
+    Get-ChildItem -Path $appStagingDir -Filter "Remvora*.*" | Copy-Item -Destination $deltaStagingDir -Force
+    if (Test-Path (Join-Path $appStagingDir "Assets")) {
+        Copy-Item -Path (Join-Path $appStagingDir "Assets") -Destination $deltaStagingDir -Recurse -Force
+    }
+    if (Test-Path (Join-Path $appStagingDir "resources.pri")) {
+        Copy-Item -Path (Join-Path $appStagingDir "resources.pri") -Destination $deltaStagingDir -Force
+    }
+
+    $deltaZipName = "Remvora-v$Version-$arch-delta.zip"
+    $deltaZipPath = Join-Path $releasesDir $deltaZipName
+    if (Test-Path $deltaZipPath) { Remove-Item -Path $deltaZipPath -Force }
+
+    Write-Host "Compressing Delta package to $deltaZipName..." -ForegroundColor Cyan
+    Compress-Archive -Path "$deltaStagingDir\*" -DestinationPath $deltaZipPath -CompressionLevel Optimal
+    Remove-Item -Path $deltaStagingDir -Recurse -Force
+
+    $deltaHash = (Get-FileHash -Path $deltaZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $deltaSize = (Get-Item $deltaZipPath).Length
+    $checksums += "$deltaHash  $deltaZipName"
+    Write-Host "Delta SHA-256: $deltaHash ($([math]::Round($deltaSize / 1MB, 2)) MB)" -ForegroundColor Gray
+
+    $packagesManifest[$arch] = @{
+        fullPackage = @{
+            url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$zipFileName"
+            sha256 = $hash
+            sizeBytes = $fullSize
+        }
+        deltaPackage = @{
+            url = "https://github.com/MuhammadFrz/Remvora/releases/download/v$Version/$deltaZipName"
+            sha256 = $deltaHash
+            sizeBytes = $deltaSize
+        }
+    }
 }
 
-# 7. Write checksums file
+# 8. Write checksums file
 $checksumPath = Join-Path $releasesDir "checksums-sha256.txt"
-$checksums | Set-Content -Path $checksumPath -Encoding UTF8
+[System.IO.File]::WriteAllLines($checksumPath, $checksums, [System.Text.Encoding]::UTF8)
+
+# 9. Write manifest.json
+$manifestObj = @{
+    version = $Version
+    releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    releaseNotes = "- Resolved grid mode phantom items and Windows internal system apps`n- Integrated high-speed Delta Update Center`n- Under 300ms atomic update restart engine"
+    minDeltaVersion = "1.0.0"
+    packages = $packagesManifest
+}
+$manifestJson = $manifestObj | ConvertTo-Json -Depth 6
+$manifestPath = Join-Path $releasesDir "manifest.json"
+[System.IO.File]::WriteAllText($manifestPath, $manifestJson, [System.Text.Encoding]::UTF8)
 
 Write-Host "`n========================================================" -ForegroundColor Green
 Write-Host "All clean distributions packaged! Output in: $releasesDir" -ForegroundColor Green

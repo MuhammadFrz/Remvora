@@ -77,9 +77,104 @@ public sealed partial class ApplicationItemViewModel : ObservableObject
     public bool CanUninstall => Model.Uninstall.CanUninstall;
     public bool CanQuietUninstall => Model.Uninstall.CanQuietUninstall;
 
+    [ObservableProperty]
+    public partial Microsoft.UI.Xaml.Media.ImageSource? IconSource { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasIcon { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsSelected { get; set; }
+
+    public event Action<ApplicationItemViewModel>? SelectionChanged;
+
+    partial void OnIsSelectedChanged(bool value) => SelectionChanged?.Invoke(this);
+
     public ApplicationItemViewModel(ApplicationRecord model)
     {
         Model = model ?? throw new ArgumentNullException(nameof(model));
+        _ = LoadIconAsync();
+    }
+
+    public async Task LoadIconAsync()
+    {
+        if (HasIcon || IconSource != null)
+            return;
+
+        try
+        {
+            var path = ResolveIconPath();
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                return;
+
+            var ext = Path.GetExtension(path).ToLowerInvariant();
+            if (ext is ".png" or ".jpg" or ".jpeg" or ".bmp")
+            {
+                var bitmap = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(path));
+                IconSource = bitmap;
+                HasIcon = true;
+                return;
+            }
+
+            var storageFile = await global::Windows.Storage.StorageFile.GetFileFromPathAsync(path);
+            var thumbnail = await storageFile.GetThumbnailAsync(global::Windows.Storage.FileProperties.ThumbnailMode.SingleItem, 48);
+            if (thumbnail != null)
+            {
+                var bitmap = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage();
+                await bitmap.SetSourceAsync(thumbnail);
+                IconSource = bitmap;
+                HasIcon = true;
+            }
+        }
+        catch
+        {
+            HasIcon = false;
+        }
+    }
+
+    private string? ResolveIconPath()
+    {
+        // 1. Check DisplayIcon
+        if (!string.IsNullOrWhiteSpace(Model.DisplayIcon))
+        {
+            var raw = Model.DisplayIcon.Trim();
+            if (raw.StartsWith('\"'))
+            {
+                var close = raw.IndexOf('\"', 1);
+                if (close > 0)
+                    raw = raw.Substring(1, close - 1);
+            }
+            else if (raw.Contains(','))
+            {
+                raw = raw.Split(',')[0].Trim('\"', ' ');
+            }
+
+            raw = Environment.ExpandEnvironmentVariables(raw);
+            if (File.Exists(raw))
+                return raw;
+        }
+
+        // 2. Check InstallLocation
+        if (!string.IsNullOrWhiteSpace(Model.InstallLocation) && Directory.Exists(Model.InstallLocation))
+        {
+            try
+            {
+                var files = Directory.GetFiles(Model.InstallLocation, "*.exe", SearchOption.TopDirectoryOnly);
+                if (files.Length > 0)
+                    return files[0];
+            }
+            catch { }
+        }
+
+        // 3. Check UninstallString
+        if (!string.IsNullOrWhiteSpace(Model.Uninstall.UninstallString))
+        {
+            var exe = Remvora.Core.CommandLine.CommandLineParser.ExtractExecutablePath(Model.Uninstall.UninstallString);
+            if (!string.IsNullOrWhiteSpace(exe) && File.Exists(exe))
+                return exe;
+        }
+
+        return null;
     }
 
     public static string FormatBytes(long bytes)

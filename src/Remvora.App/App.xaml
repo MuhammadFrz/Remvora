@@ -22,6 +22,15 @@
             <Style x:Key="BodySubtleTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
                 <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             </Style>
+
+            <Style x:Key="TitleMediumTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
+                <Setter Property="FontSize" Value="20" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+
+            <!-- Prominent Card & Modal Brushes -->
+            <SolidColorBrush x:Key="HighContrastCardStrokeBrush" Color="#3E4556" />
+            <SolidColorBrush x:Key="ModalCardBackgroundBrush" Color="#1E2028" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

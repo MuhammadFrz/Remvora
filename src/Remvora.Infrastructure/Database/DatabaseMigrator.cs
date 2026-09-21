@@ -99,6 +99,18 @@ public sealed class DatabaseMigrator
             );
 
             CREATE INDEX IF NOT EXISTS idx_transaction_items_trans_id ON transaction_items(transaction_id);
+
+            CREATE TABLE IF NOT EXISTS cleaning_stats (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                category INTEGER NOT NULL,
+                items_count INTEGER NOT NULL,
+                bytes_saved INTEGER NOT NULL,
+                details TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_cleaning_stats_timestamp ON cleaning_stats(timestamp);
+            CREATE INDEX IF NOT EXISTS idx_cleaning_stats_category ON cleaning_stats(category);
             """;
 
         connection.Execute(createApplicationsTableSql);

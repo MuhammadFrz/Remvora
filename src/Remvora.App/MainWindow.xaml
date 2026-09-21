@@ -80,6 +80,13 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem
+                    Content="Deep Scan"
+                    Tag="scan">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE773;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem
                     Content="Hunter Mode"
                     Tag="hunter">
                     <NavigationViewItem.Icon>
@@ -98,6 +105,13 @@
                     Tag="audit">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE81C;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem
+                    Content="Backups &amp; Rollback"
+                    Tag="backups">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE777;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>

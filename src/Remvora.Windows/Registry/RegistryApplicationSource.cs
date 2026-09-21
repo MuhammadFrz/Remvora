@@ -142,6 +142,7 @@ public sealed partial class RegistryApplicationSource : IApplicationDiscoverySou
         var uninstallString = GetStringValue(values, "UninstallString");
         var quietUninstallString = GetStringValue(values, "QuietUninstallString");
         var modifyPath = GetStringValue(values, "ModifyPath");
+        var displayIcon = GetStringValue(values, "DisplayIcon");
 
         // Parse estimated size (in KB from registry)
         long? estimatedSizeBytes = null;
@@ -228,7 +229,8 @@ public sealed partial class RegistryApplicationSource : IApplicationDiscoverySou
             [discoverySource],
             null,
             RunningStatus.Unknown,
-            isSystemComponent);
+            isSystemComponent,
+            displayIcon: displayIcon);
     }
 
     private static InstallerType DetermineInstallerType(

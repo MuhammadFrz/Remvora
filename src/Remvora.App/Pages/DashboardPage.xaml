@@ -151,6 +151,238 @@
                 </Border>
             </Grid>
 
+            <!-- Visual Analytics & Storage Footprint (Bug 4) -->
+            <Grid ColumnDefinitions="3*,2*" Margin="0,4,0,0">
+                <!-- 1. Drive Storage Capacity Graph -->
+                <Border
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Drive Storage Footprint" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                                <TextBlock Text="Capacity distribution across disk partitions, applications, and system caches" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="8,3">
+                                    <TextBlock Text="{x:Bind ViewModel.SystemDriveName, Mode=OneWay}" FontWeight="Bold" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                </Border>
+                                <TextBlock Text="{x:Bind ViewModel.DriveUsedPercentage, Mode=OneWay}" FontWeight="Bold" Style="{ThemeResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"/>
+                                <TextBlock Text="% used" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Segmented Storage Meter -->
+                        <ProgressBar
+                            Value="{x:Bind ViewModel.DriveUsedPercentage, Mode=OneWay}"
+                            Maximum="100"
+                            Height="12"
+                            CornerRadius="6"
+                            Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+
+                        <!-- Storage Legend -->
+                        <Grid ColumnDefinitions="*,*,*">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Ellipse Width="8" Height="8" Fill="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                    <TextBlock Text="Installed Apps" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.TotalInstalledSizeText, Mode=OneWay}" FontWeight="SemiBold"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Ellipse Width="8" Height="8" Fill="{ThemeResource SystemFillColorCautionBrush}"/>
+                                    <TextBlock Text="Cleanable Junk" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.JunkEstimateText, Mode=OneWay}" FontWeight="SemiBold"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Ellipse Width="8" Height="8" Fill="{ThemeResource SystemFillColorSuccessBrush}"/>
+                                    <TextBlock Text="Free Space" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.DriveFreeSpaceText, Mode=OneWay}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 2. Software & Startup Health Graph -->
+                <Border
+                    Grid.Column="1"
+                    Margin="8,0,0,0"
+                    Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="14">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Application Breakdown" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                            <TextBlock Text="Ratio of Win32 desktop software to modern packages" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+
+                        <!-- Software Ratio Bar -->
+                        <ProgressBar
+                            Value="{x:Bind ViewModel.DesktopAppsPercentage, Mode=OneWay}"
+                            Maximum="100"
+                            Height="12"
+                            CornerRadius="6"
+                            Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+
+                        <Grid ColumnDefinitions="*,*">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Desktop Win32" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="{x:Bind ViewModel.DesktopAppsCount, Mode=OneWay}" FontWeight="Bold"/>
+                                    <TextBlock Text="apps" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Bottom"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="Store Packages" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="{x:Bind ViewModel.StoreAppsCount, Mode=OneWay}" FontWeight="Bold"/>
+                                    <TextBlock Text="packages" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Bottom"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="6" Padding="10,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE7B5;" FontSize="14" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                    <TextBlock Text="Startup Programs" Style="{ThemeResource CaptionTextBlockStyle}" FontWeight="Medium"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="{x:Bind ViewModel.EnabledStartupCount, Mode=OneWay}" FontWeight="Bold" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                                    <TextBlock Text="enabled," Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.HighImpactStartupCount, Mode=OneWay}" FontWeight="Bold" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource SystemFillColorCautionBrush}"/>
+                                    <TextBlock Text="high impact" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Lifetime Reclamation & Cleanup Impact Area -->
+            <Border
+                Padding="20"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                BorderThickness="1.5"
+                CornerRadius="8">
+                <StackPanel Spacing="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Lifetime Cleanup &amp; Reclamation Impact" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                            <TextBlock Text="Cumulative system storage saved and software clutter eliminated across the lifespan of Remvora on this machine." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <Border Grid.Column="1" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" CornerRadius="4" Padding="10,4" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE73E;" FontSize="12" Foreground="{ThemeResource SystemFillColorSuccessBrush}"/>
+                                <TextBlock Text="Verified Safe" Style="{ThemeResource CaptionTextBlockStyle}" FontWeight="SemiBold" Foreground="{ThemeResource SystemFillColorSuccessBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- 4 Metric Cards Grid -->
+                    <Grid ColumnDefinitions="*,*,*,*">
+                        <!-- Total Space Saved -->
+                        <Border
+                            Grid.Column="0"
+                            Margin="0,0,6,0"
+                            Padding="16"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Foreground="{ThemeResource AccentFillColorDefaultBrush}" Glyph="&#xE74D;" FontSize="16"/>
+                                    <TextBlock Text="Total Space Saved" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.LifetimeBytesSavedText, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Apps Uninstalled -->
+                        <Border
+                            Grid.Column="1"
+                            Margin="4,0,4,0"
+                            Padding="16"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Foreground="{ThemeResource AccentFillColorDefaultBrush}" Glyph="&#xE71D;" FontSize="16"/>
+                                    <TextBlock Text="Apps Uninstalled" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.LifetimeAppsUninstalled, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Leftovers Cleaned -->
+                        <Border
+                            Grid.Column="2"
+                            Margin="4,0,4,0"
+                            Padding="16"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Foreground="{ThemeResource AccentFillColorDefaultBrush}" Glyph="&#xE74D;" FontSize="16"/>
+                                    <TextBlock Text="Leftovers Removed" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.LifetimeLeftoversCleaned, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Junk & Cache Files Purged -->
+                        <Border
+                            Grid.Column="3"
+                            Margin="6,0,0,0"
+                            Padding="16"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Foreground="{ThemeResource AccentFillColorDefaultBrush}" Glyph="&#xE770;" FontSize="16"/>
+                                    <TextBlock Text="Junk &amp; Cache Purged" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.LifetimeJunkFilesPurged, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- Quick Launch Actions -->
             <StackPanel Spacing="12">
                 <TextBlock
@@ -158,11 +390,11 @@
                     Style="{ThemeResource SubtitleTextBlockStyle}"
                     Text="Quick Actions" />
 
-                <Grid ColumnDefinitions="*,*,*,*">
+                <Grid ColumnDefinitions="*,*,*,*,*">
                     <!-- Quick Action: Complete Uninstall -->
                     <Button
                         Grid.Column="0"
-                        Margin="0,0,6,0"
+                        Margin="0,0,4,0"
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Stretch"
                         Command="{x:Bind ViewModel.NavigateCommand}"
@@ -186,9 +418,36 @@
                         </StackPanel>
                     </Button>
 
-                    <!-- Quick Action: Hunter Mode -->
+                    <!-- Quick Action: Deep System Scan -->
                     <Button
                         Grid.Column="1"
+                        Margin="4,0,4,0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Command="{x:Bind ViewModel.NavigateCommand}"
+                        CommandParameter="scan"
+                        Padding="16">
+                        <StackPanel Spacing="8">
+                            <FontIcon
+                                HorizontalAlignment="Left"
+                                FontSize="24"
+                                Foreground="{ThemeResource AccentFillColorDefaultBrush}"
+                                Glyph="&#xE773;" />
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                Text="Deep Scan" />
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                Text="Redundancies, caches &amp; app issues"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Quick Action: Hunter Mode -->
+                    <Button
+                        Grid.Column="2"
                         Margin="4,0,4,0"
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Stretch"
@@ -215,7 +474,7 @@
 
                     <!-- Quick Action: System Cleaner -->
                     <Button
-                        Grid.Column="2"
+                        Grid.Column="3"
                         Margin="4,0,4,0"
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Stretch"
@@ -242,8 +501,8 @@
 
                     <!-- Quick Action: Windows Tools -->
                     <Button
-                        Grid.Column="3"
-                        Margin="6,0,0,0"
+                        Grid.Column="4"
+                        Margin="4,0,0,0"
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Stretch"
                         Command="{x:Bind ViewModel.NavigateCommand}"

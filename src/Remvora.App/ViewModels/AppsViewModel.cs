@@ -5,10 +5,13 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Remvora.Application.Leftovers;
 using Remvora.Application.Processes;
+using Remvora.Application.Stats;
 using Remvora.Application.Transactions;
 using Remvora.Application.Workflows;
 using Remvora.Core.Abstractions.Discovery;
 using Remvora.Core.Domain.Applications;
+using Remvora.Core.Domain.Leftovers;
+using Remvora.Core.Domain.Stats;
 
 namespace Remvora.App.ViewModels;
 
@@ -31,16 +34,68 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
     private readonly ILeftoverScanner _leftoverScanner;
     private readonly ITransactionExecutor _transactionExecutor;
     private readonly ITransactionRollbackService _rollbackService;
+    private readonly ICleaningStatsRepository _cleaningStatsRepository;
     private readonly ILogger<AppsViewModel> _logger;
 
     private readonly List<ApplicationItemViewModel> _allApplications = [];
     private CancellationTokenSource? _flowCts;
+    private CancellationTokenSource? _batchCts;
 
     [ObservableProperty]
     public partial ObservableCollection<ApplicationItemViewModel> FilteredApplications { get; set; } = [];
 
     [ObservableProperty]
     public partial ApplicationItemViewModel? SelectedItem { get; set; }
+
+    // Batch Selection Properties
+    [ObservableProperty]
+    public partial int SelectedAppsCount { get; set; }
+
+    [ObservableProperty]
+    public partial string SelectedAppsSizeText { get; set; } = "0 B";
+
+    [ObservableProperty]
+    public partial bool HasSelectedApps { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsAllSelected { get; set; }
+
+    // Batch Execution State
+    [ObservableProperty]
+    public partial bool IsBatchRunning { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsBatchModalOpen { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsBatchSummaryOpen { get; set; }
+
+    [ObservableProperty]
+    public partial ObservableCollection<BatchAppItemViewModel> BatchQueue { get; set; } = [];
+
+    [ObservableProperty]
+    public partial int BatchCurrentIndex { get; set; }
+
+    [ObservableProperty]
+    public partial int BatchTotalCount { get; set; }
+
+    [ObservableProperty]
+    public partial double BatchProgressPercent { get; set; }
+
+    [ObservableProperty]
+    public partial string BatchStatusMessage { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial int BatchSuccessCount { get; set; }
+
+    [ObservableProperty]
+    public partial int BatchFailureCount { get; set; }
+
+    [ObservableProperty]
+    public partial string BatchReclaimedSizeText { get; set; } = "0 B";
+
+    [ObservableProperty]
+    public partial ObservableCollection<BatchAppItemViewModel> BatchFailedApps { get; set; } = [];
 
     [ObservableProperty]
     public partial bool IsLoading { get; set; }
@@ -53,6 +108,24 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     public partial string SelectedCategory { get; set; } = "All";
+
+    [ObservableProperty]
+    public partial bool FilterDesktop { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool FilterStore { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool FilterLarge { get; set; } = false;
+
+    [ObservableProperty]
+    public partial bool FilterSystem { get; set; } = false;
+
+    [ObservableProperty]
+    public partial string FilterSummaryText { get; set; } = "All Apps";
+
+    [ObservableProperty]
+    public partial bool IsGridView { get; set; } = false;
 
     [ObservableProperty]
     public partial string SelectedSort { get; set; } = "Name";
@@ -106,6 +179,7 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
         ITransactionExecutor transactionExecutor,
         ITransactionRollbackService rollbackService,
         CleanupPreviewViewModel cleanupPreview,
+        ICleaningStatsRepository cleaningStatsRepository,
         ILogger<AppsViewModel> logger)
     {
         _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
@@ -116,6 +190,7 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
         _transactionExecutor = transactionExecutor ?? throw new ArgumentNullException(nameof(transactionExecutor));
         _rollbackService = rollbackService ?? throw new ArgumentNullException(nameof(rollbackService));
         CleanupPreview = cleanupPreview ?? throw new ArgumentNullException(nameof(cleanupPreview));
+        _cleaningStatsRepository = cleaningStatsRepository ?? throw new ArgumentNullException(nameof(cleaningStatsRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -194,17 +269,116 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
 
         foreach (var app in applications)
         {
-            _allApplications.Add(new ApplicationItemViewModel(app));
+            if (IsInternalSystemComponent(app))
+                continue;
+
+            var item = new ApplicationItemViewModel(app);
+            item.SelectionChanged += OnItemSelectionChanged;
+            _allApplications.Add(item);
             totalBytes += app.EstimatedSizeBytes ?? app.CalculatedSizeBytes ?? 0L;
         }
 
         TotalSizeText = ApplicationItemViewModel.FormatBytes(totalBytes);
         ApplyFiltersAndSort();
+        UpdateSelectionMetrics();
+    }
+
+    private void OnItemSelectionChanged(ApplicationItemViewModel item)
+    {
+        UpdateSelectionMetrics();
+    }
+
+    private void UpdateSelectionMetrics()
+    {
+        var selected = _allApplications.Where(a => a.IsSelected).ToList();
+        SelectedAppsCount = selected.Count;
+        HasSelectedApps = selected.Count > 0;
+        long totalBytes = selected.Sum(a => a.Model.EstimatedSizeBytes ?? a.Model.CalculatedSizeBytes ?? 0L);
+        SelectedAppsSizeText = ApplicationItemViewModel.FormatBytes(totalBytes);
+        IsAllSelected = FilteredApplications.Count > 0 && FilteredApplications.All(a => a.IsSelected);
+    }
+
+    [RelayCommand]
+    public void SelectAllApps()
+    {
+        foreach (var app in FilteredApplications)
+        {
+            app.IsSelected = true;
+        }
+        UpdateSelectionMetrics();
+    }
+
+    [RelayCommand]
+    public void ClearSelection()
+    {
+        foreach (var app in _allApplications)
+        {
+            app.IsSelected = false;
+        }
+        UpdateSelectionMetrics();
+    }
+
+    [RelayCommand]
+    public void ToggleSelectAll()
+    {
+        if (IsAllSelected)
+            ClearSelection();
+        else
+            SelectAllApps();
+    }
+
+    private static bool IsInternalSystemComponent(ApplicationRecord app)
+    {
+        if (app.IsSystemComponent)
+            return true;
+
+        if (Guid.TryParse(app.DisplayName, out _))
+            return true;
+
+        if (!string.IsNullOrWhiteSpace(app.InstallLocation) &&
+            (app.InstallLocation.Contains(@"\SystemApps\", StringComparison.OrdinalIgnoreCase) ||
+             app.InstallLocation.Contains(@"\Windows\System32\", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        if (app.DisplayName.StartsWith("ms-resource:", StringComparison.OrdinalIgnoreCase) ||
+            app.DisplayName.StartsWith("@{", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     partial void OnSearchQueryChanged(string value) => ApplyFiltersAndSort();
     partial void OnSelectedCategoryChanged(string value) => ApplyFiltersAndSort();
     partial void OnSelectedSortChanged(string value) => ApplyFiltersAndSort();
+
+    partial void OnFilterDesktopChanged(bool value) => OnFilterStateChanged();
+    partial void OnFilterStoreChanged(bool value) => OnFilterStateChanged();
+    partial void OnFilterLargeChanged(bool value) => OnFilterStateChanged();
+    partial void OnFilterSystemChanged(bool value) => OnFilterStateChanged();
+
+    private void OnFilterStateChanged()
+    {
+        var active = new List<string>();
+        if (FilterDesktop && FilterStore) active.Add("All Apps");
+        else if (FilterDesktop) active.Add("Desktop");
+        else if (FilterStore) active.Add("Store");
+
+        if (FilterLarge) active.Add("Large");
+        if (FilterSystem) active.Add("System");
+
+        FilterSummaryText = active.Count == 0 ? "Filters (None)" : string.Join(", ", active);
+        ApplyFiltersAndSort();
+    }
+
+    [RelayCommand]
+    public void SetListView() => IsGridView = false;
+
+    [RelayCommand]
+    public void SetGridView() => IsGridView = true;
 
     private void ApplyFiltersAndSort()
     {
@@ -218,13 +392,29 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
                 a.Publisher.Contains(trimmed, StringComparison.CurrentCultureIgnoreCase));
         }
 
-        query = SelectedCategory switch
+        // Multi-select scope/category filters
+        if (!FilterDesktop && !FilterStore)
         {
-            "Desktop" => query.Where(a => !a.IsStoreApp),
-            "Store" => query.Where(a => a.IsStoreApp),
-            "Large" => query.Where(a => (a.Model.EstimatedSizeBytes ?? 0) >= 100 * 1024 * 1024),
-            _ => query
-        };
+            // If both are unchecked, display all by default
+        }
+        else if (FilterDesktop && !FilterStore)
+        {
+            query = query.Where(a => !a.IsStoreApp);
+        }
+        else if (!FilterDesktop && FilterStore)
+        {
+            query = query.Where(a => a.IsStoreApp);
+        }
+
+        if (FilterLarge)
+        {
+            query = query.Where(a => (a.Model.EstimatedSizeBytes ?? a.Model.CalculatedSizeBytes ?? 0) >= 500 * 1024 * 1024);
+        }
+
+        if (!FilterSystem)
+        {
+            query = query.Where(a => !a.Model.IsSystemComponent);
+        }
 
         query = SelectedSort switch
         {
@@ -476,6 +666,14 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
             _allApplications.Remove(SelectedItem);
             ApplyFiltersAndSort();
 
+            await _cleaningStatsRepository.RecordEventAsync(new CleaningStatEvent(
+                Guid.NewGuid(),
+                DateTimeOffset.UtcNow,
+                CleaningCategory.AppUninstall,
+                1,
+                app.EstimatedSizeBytes ?? app.CalculatedSizeBytes ?? 0L,
+                $"Clean uninstallation of {app.DisplayName}"), _flowCts?.Token ?? default).ConfigureAwait(true);
+
             ShowSuccess(
                 "Uninstallation Completed",
                 $"{app.DisplayName} was uninstalled cleanly. No leftover traces were found on this system.",
@@ -515,12 +713,22 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
                 _flowCts?.Token ?? default).ConfigureAwait(true);
 
             // App uninstalled and leftovers cleaned: remove from repository
-            await _repository.DeleteAsync(SelectedItem.Model.Id).ConfigureAwait(true);
+            var app = SelectedItem.Model;
+            await _repository.DeleteAsync(app.Id).ConfigureAwait(true);
             _allApplications.Remove(SelectedItem);
             ApplyFiltersAndSort();
 
             LastTransactionId = result.PlanId;
             var reclaimed = ApplicationItemViewModel.FormatBytes(result.ReclaimedSizeBytes);
+
+            var totalReclaimed = (app.EstimatedSizeBytes ?? app.CalculatedSizeBytes ?? 0L) + result.ReclaimedSizeBytes;
+            await _cleaningStatsRepository.RecordEventAsync(new CleaningStatEvent(
+                Guid.NewGuid(),
+                DateTimeOffset.UtcNow,
+                CleaningCategory.AppUninstall,
+                result.SucceededItems + 1,
+                totalReclaimed,
+                $"Uninstallation and leftover cleanup for {app.DisplayName}"), _flowCts?.Token ?? default).ConfigureAwait(true);
 
             ShowSuccess(
                 result.IsSuccess ? "Cleanup Completed Successfully" : "Cleanup Finished with Warnings",
@@ -539,9 +747,18 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
     {
         if (SelectedItem is not null)
         {
-            await _repository.DeleteAsync(SelectedItem.Model.Id).ConfigureAwait(true);
+            var app = SelectedItem.Model;
+            await _repository.DeleteAsync(app.Id).ConfigureAwait(true);
             _allApplications.Remove(SelectedItem);
             ApplyFiltersAndSort();
+
+            await _cleaningStatsRepository.RecordEventAsync(new CleaningStatEvent(
+                Guid.NewGuid(),
+                DateTimeOffset.UtcNow,
+                CleaningCategory.AppUninstall,
+                1,
+                app.EstimatedSizeBytes ?? app.CalculatedSizeBytes ?? 0L,
+                $"Vendor uninstallation of {app.DisplayName}"), default).ConfigureAwait(true);
         }
 
         ShowSuccess(
@@ -549,6 +766,168 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
             $"The vendor uninstaller completed. Residual leftovers were kept on the system as requested.",
             false,
             false);
+    }
+
+    // ==========================================
+    // BATCH UNINSTALL EXECUTION & ISOLATION
+    // ==========================================
+
+    [RelayCommand]
+    public async Task StartBatchUninstallAsync()
+    {
+        var selected = _allApplications.Where(a => a.IsSelected).ToList();
+        if (selected.Count == 0)
+            return;
+
+        _batchCts?.Dispose();
+        _batchCts = new CancellationTokenSource();
+        var token = _batchCts.Token;
+
+        BatchQueue.Clear();
+        BatchFailedApps.Clear();
+        foreach (var s in selected)
+        {
+            BatchQueue.Add(new BatchAppItemViewModel(s.Model));
+        }
+
+        BatchTotalCount = BatchQueue.Count;
+        BatchCurrentIndex = 0;
+        BatchSuccessCount = 0;
+        BatchFailureCount = 0;
+        BatchProgressPercent = 0;
+        IsBatchRunning = true;
+        IsBatchModalOpen = true;
+        IsBatchSummaryOpen = false;
+
+        long totalReclaimed = 0;
+        var succeededModels = new List<ApplicationRecord>();
+
+        for (int i = 0; i < BatchQueue.Count; i++)
+        {
+            if (token.IsCancellationRequested)
+                break;
+
+            var currentItem = BatchQueue[i];
+            BatchCurrentIndex = i + 1;
+            BatchProgressPercent = ((double)i / BatchTotalCount) * 100.0;
+            BatchStatusMessage = $"Uninstalling {currentItem.DisplayName} ({BatchCurrentIndex}/{BatchTotalCount})...";
+            currentItem.IsActive = true;
+            currentItem.Status = "Uninstalling...";
+
+            try
+            {
+                // 1. Process termination if any
+                var processes = await _processDetector.DetectProcessesAsync(currentItem.Model, token).ConfigureAwait(true);
+
+                // 2. Vendor uninstaller execution
+                var uninstallProgress = new Progress<UninstallWorkflowProgress>(p =>
+                {
+                    currentItem.Status = p.Message;
+                });
+
+                var result = await _uninstallOrchestrator.UninstallAsync(
+                    currentItem.Model,
+                    new UninstallWorkflowOptions(
+                        TerminateProcesses: true,
+                        WarnIfProcessesRunning: false,
+                        CreateRestorePoint: false),
+                    uninstallProgress,
+                    token).ConfigureAwait(true);
+
+                // 3. Scan leftovers
+                currentItem.Status = "Scanning leftover traces...";
+                var leftovers = await _leftoverScanner.ScanLeftoversAsync(
+                    currentItem.Model,
+                    ScanOptions.Default,
+                    null,
+                    token).ConfigureAwait(true);
+
+                long appReclaimed = currentItem.Model.EstimatedSizeBytes ?? currentItem.Model.CalculatedSizeBytes ?? 0L;
+                int itemsRemoved = 1;
+
+                if (leftovers.Count > 0)
+                {
+                    currentItem.Status = "Cleaning remnants...";
+                    var plan = new CleanupPlan(Guid.NewGuid(), currentItem.Model.Id, DateTimeOffset.UtcNow, leftovers);
+                    var candidateIds = plan.SelectedCandidates.Select(c => c.Id).ToList();
+
+                    var cleanupResult = await _transactionExecutor.ExecuteCleanupAsync(
+                        plan,
+                        candidateIds,
+                        null,
+                        token).ConfigureAwait(true);
+
+                    appReclaimed += cleanupResult.ReclaimedSizeBytes;
+                    itemsRemoved += cleanupResult.SucceededItems;
+                }
+
+                // Remove from repository
+                await _repository.DeleteAsync(currentItem.Model.Id).ConfigureAwait(true);
+                succeededModels.Add(currentItem.Model);
+                totalReclaimed += appReclaimed;
+                currentItem.ReclaimedBytes = appReclaimed;
+
+                // Record cleaning statistics
+                await _cleaningStatsRepository.RecordEventAsync(new CleaningStatEvent(
+                    Guid.NewGuid(),
+                    DateTimeOffset.UtcNow,
+                    CleaningCategory.BatchUninstall,
+                    itemsRemoved,
+                    appReclaimed,
+                    $"Batch Uninstallation of {currentItem.DisplayName}"), token).ConfigureAwait(true);
+
+                currentItem.Status = "Completed";
+                currentItem.IsSuccess = true;
+                currentItem.IsCompleted = true;
+                currentItem.IsActive = false;
+                BatchSuccessCount++;
+            }
+            catch (OperationCanceledException)
+            {
+                currentItem.Status = "Cancelled";
+                currentItem.IsActive = false;
+                currentItem.IsCompleted = true;
+                break;
+            }
+            catch (Exception ex)
+            {
+                LogBatchItemError(_logger, currentItem.DisplayName, ex.Message, ex);
+                currentItem.Status = "Failed";
+                currentItem.ErrorMessage = ex.Message;
+                currentItem.IsSuccess = false;
+                currentItem.IsCompleted = true;
+                currentItem.IsActive = false;
+                BatchFailureCount++;
+                BatchFailedApps.Add(currentItem);
+            }
+        }
+
+        BatchProgressPercent = 100.0;
+        BatchReclaimedSizeText = ApplicationItemViewModel.FormatBytes(totalReclaimed);
+        IsBatchRunning = false;
+        IsBatchSummaryOpen = true;
+
+        if (succeededModels.Count > 0)
+        {
+            _allApplications.RemoveAll(vm => succeededModels.Any(m => m.Id == vm.Id));
+            ApplyFiltersAndSort();
+            UpdateSelectionMetrics();
+        }
+    }
+
+    [RelayCommand]
+    public void CancelBatch()
+    {
+        _batchCts?.Cancel();
+        BatchStatusMessage = "Cancelling remaining batch items...";
+    }
+
+    [RelayCommand]
+    public void CloseBatchSummary()
+    {
+        IsBatchModalOpen = false;
+        IsBatchSummaryOpen = false;
+        BatchQueue.Clear();
     }
 
     [RelayCommand]
@@ -609,10 +988,17 @@ public sealed partial class AppsViewModel : ObservableObject, IDisposable
         FlowStage = UninstallFlowStage.CompletedSummary;
     }
 
+    [LoggerMessage(EventId = 2001, Level = LogLevel.Error, Message = "Batch uninstallation failed for application {AppName}: {ErrorMessage}")]
+    private static partial void LogBatchItemError(ILogger logger, string appName, string errorMessage, Exception? ex);
+
     public void Dispose()
     {
         _flowCts?.Cancel();
         _flowCts?.Dispose();
         _flowCts = null;
+
+        _batchCts?.Cancel();
+        _batchCts?.Dispose();
+        _batchCts = null;
     }
 }

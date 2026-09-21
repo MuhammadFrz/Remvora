@@ -46,17 +46,22 @@
                     <TextBox
                         Grid.Column="0"
                         Margin="0,0,8,0"
+                        Height="36"
+                        VerticalContentAlignment="Center"
                         PlaceholderText="Application or session name (e.g. VSCode, Notepad++)"
                         Text="{x:Bind ViewModel.NewSessionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                     <Grid Grid.Column="1" Margin="0,0,8,0" ColumnDefinitions="*,Auto">
                         <TextBox
                             Grid.Column="0"
+                            Height="36"
+                            VerticalContentAlignment="Center"
                             IsReadOnly="True"
                             PlaceholderText="Installer executable path (optional)"
                             Text="{x:Bind ViewModel.SelectedInstallerPath, Mode=OneWay}" />
                         <Button
                             Grid.Column="1"
+                            Height="36"
                             Margin="4,0,0,0"
                             Click="BrowseInstaller_Click"
                             Content="Browse..." />

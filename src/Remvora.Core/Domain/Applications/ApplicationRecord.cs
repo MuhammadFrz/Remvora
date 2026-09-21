@@ -24,6 +24,7 @@ public sealed record ApplicationRecord
     public SignatureInfo? Signature { get; init; }
     public RunningStatus RunningState { get; init; }
     public bool IsSystemComponent { get; init; }
+    public string? DisplayIcon { get; init; }
     public DateTimeOffset LastDiscovered { get; init; }
 
     public ApplicationRecord(
@@ -44,7 +45,8 @@ public sealed record ApplicationRecord
         SignatureInfo? signature = null,
         RunningStatus runningState = RunningStatus.Unknown,
         bool isSystemComponent = false,
-        DateTimeOffset? lastDiscovered = null)
+        DateTimeOffset? lastDiscovered = null,
+        string? displayIcon = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
 
@@ -63,6 +65,7 @@ public sealed record ApplicationRecord
         Uninstall = uninstall ?? throw new ArgumentNullException(nameof(uninstall));
         DiscoverySources = discoverySources ?? [];
         Signature = signature;
+        DisplayIcon = displayIcon?.Trim();
         RunningState = runningState;
         IsSystemComponent = isSystemComponent;
         LastDiscovered = lastDiscovered ?? DateTimeOffset.UtcNow;

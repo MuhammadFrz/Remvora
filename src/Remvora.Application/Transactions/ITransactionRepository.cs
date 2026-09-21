@@ -1,3 +1,4 @@
+using Remvora.Core.Domain.Results;
 using Remvora.Core.Domain.Transactions;
 
 namespace Remvora.Application.Transactions;
@@ -25,5 +26,9 @@ public interface ITransactionRepository
 
     Task AddTransactionItemAsync(
         TransactionItem item,
+        CancellationToken cancellationToken = default);
+
+    Task<OperationResult> DeleteTransactionAsync(
+        Guid transactionId,
         CancellationToken cancellationToken = default);
 }

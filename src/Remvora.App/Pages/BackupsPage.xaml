@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Name="BackupsRoot"
+    x:Class="Remvora.App.Pages.BackupsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Remvora.App.ViewModels"
+    xmlns:tx="using:Remvora.Core.Domain.Transactions"
+    mc:Ignorable="d">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Vertical" Spacing="4">
+                <TextBlock Text="Backups &amp; Rollback" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="SemiBold"/>
+                <TextBlock Text="Inspect uninstallation journals, reverse destructive changes, and manage restore points." Style="{ThemeResource BodySubtleTextBlockStyle}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Command="{x:Bind ViewModel.CreateRestorePointCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE777;"/>
+                        <TextBlock Text="System Restore Point"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{x:Bind ViewModel.RefreshCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE72C;"/>
+                        <TextBlock Text="Refresh"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Metric Summary Cards -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*" Margin="0,0,0,16">
+            <Border
+                Grid.Column="0"
+                Margin="0,0,8,0"
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                BorderThickness="1.5"
+                CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Foreground="{ThemeResource AccentFillColorDefaultBrush}" Glyph="&#xE777;" FontSize="16"/>
+                        <TextBlock Text="Recorded Backups" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind ViewModel.TotalBackupsCount, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+
+            <Border
+                Grid.Column="1"
+                Margin="4,0,4,0"
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                BorderThickness="1.5"
+                CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Foreground="{ThemeResource SystemFillColorSuccessBrush}" Glyph="&#xE81C;" FontSize="16"/>
+                        <TextBlock Text="Backed Up Resources" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind ViewModel.TotalRestorableItemsCount, Mode=OneWay}" Style="{ThemeResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+
+            <Border
+                Grid.Column="2"
+                Margin="8,0,0,0"
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                BorderThickness="1.5"
+                CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Foreground="{ThemeResource SystemFillColorCautionBrush}" Glyph="&#xE7BA;" FontSize="16"/>
+                        <TextBlock Text="Safety Invariant" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                    <TextBlock Text="Full Rollback Available" Style="{ThemeResource BodyStrongTextBlockStyle}" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Search Bar -->
+        <Grid Grid.Row="2" Margin="0,0,0,16">
+            <TextBox
+                Height="36"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                Padding="10,6,10,6"
+                PlaceholderText="Search backups by operation, date, or application..."
+                Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        </Grid>
+
+        <!-- Main Master-Detail Content -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="380"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="420" MinWidth="360"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Backups Master List -->
+            <Border
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                BorderThickness="1.5"
+                CornerRadius="8">
+                <ListView
+                    ItemsSource="{x:Bind ViewModel.FilteredBackups, Mode=OneWay}"
+                    SelectedItem="{x:Bind ViewModel.SelectedBackup, Mode=TwoWay}"
+                    SelectionMode="Single">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BackupItemViewModel">
+                            <Grid Padding="12,10" ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Grid.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Roll Back Changes" Command="{Binding ElementName=BackupsRoot, Path=ViewModel.RollbackBackupCommand}" CommandParameter="{x:Bind}">
+                                            <MenuFlyoutItem.Icon>
+                                                <FontIcon Glyph="&#xE7A7;"/>
+                                            </MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutSeparator/>
+                                        <MenuFlyoutItem Text="Delete Backup" Command="{Binding ElementName=BackupsRoot, Path=ViewModel.DeleteBackupCommand}" CommandParameter="{x:Bind}">
+                                            <MenuFlyoutItem.Icon>
+                                                <FontIcon Glyph="&#xE74D;"/>
+                                            </MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                    </MenuFlyout>
+                                </Grid.ContextFlyout>
+
+                                <!-- Backup Icon -->
+                                <Border Width="36" Height="36" CornerRadius="18" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE777;" FontSize="16" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <!-- Name & Timestamp -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                    <TextBlock Text="{x:Bind SummaryNotes}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="{x:Bind StartedAtFormatted}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        <TextBlock Text="•" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                        <TextBlock Text="{x:Bind TotalItemsCount}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                        <TextBlock Text="items" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Status Badge -->
+                                <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind StatusText}" Style="{ThemeResource CaptionTextBlockStyle}" FontWeight="Medium"/>
+                                </Border>
+
+                                <!-- Quick Delete Button -->
+                                <Button
+                                    Grid.Column="3"
+                                    Command="{Binding ElementName=BackupsRoot, Path=ViewModel.DeleteBackupCommand}"
+                                    CommandParameter="{x:Bind}"
+                                    Padding="8,6"
+                                    VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE74D;" FontSize="13"/>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+
+            <!-- Separator -->
+            <Border Grid.Column="1" Width="1" Background="{StaticResource HighContrastCardStrokeBrush}" Margin="12,0"/>
+
+            <!-- Selected Backup Details Pane -->
+            <ScrollViewer Grid.Column="2">
+                <Border
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                    BorderThickness="1.5"
+                    CornerRadius="8"
+                    Padding="20">
+                    <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.SelectedBackup, Mode=OneWay, Converter={StaticResource NullToVisibilityConverter}, FallbackValue=Collapsed}">
+                        <!-- Detail Header -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{x:Bind ViewModel.SelectedBackup.SummaryNotes, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold" TextWrapping="Wrap"/>
+                            <TextBlock Text="{x:Bind ViewModel.SelectedBackup.StartedAtFormatted, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+
+                        <!-- Action Buttons -->
+                        <Grid ColumnDefinitions="*,*">
+                            <Button
+                                Grid.Column="0"
+                                Margin="0,0,4,0"
+                                HorizontalAlignment="Stretch"
+                                Style="{ThemeResource AccentButtonStyle}"
+                                IsEnabled="{x:Bind ViewModel.SelectedBackup.CanRollback, Mode=OneWay}"
+                                Command="{x:Bind ViewModel.RollbackBackupCommand}"
+                                CommandParameter="{x:Bind ViewModel.SelectedBackup, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE7A7;"/>
+                                    <TextBlock Text="Roll Back Changes"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Column="1"
+                                Margin="4,0,0,0"
+                                HorizontalAlignment="Stretch"
+                                Command="{x:Bind ViewModel.DeleteBackupCommand}"
+                                CommandParameter="{x:Bind ViewModel.SelectedBackup, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE74D;"/>
+                                    <TextBlock Text="Delete Backup"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- Journal Summary Card -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="6" Padding="14">
+                            <Grid ColumnDefinitions="*,*,*">
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock Text="Files" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedBackup.FileCount, Mode=OneWay}" FontWeight="Bold"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Text="Registry" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedBackup.RegistryCount, Mode=OneWay}" FontWeight="Bold"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="2">
+                                    <TextBlock Text="Status" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedBackup.StatusText, Mode=OneWay}" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Backed Up Items Detail List -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Backed Up Resources" FontWeight="SemiBold" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                            <ListView
+                                ItemsSource="{x:Bind ViewModel.SelectedBackup.Items, Mode=OneWay}"
+                                MaxHeight="300"
+                                SelectionMode="None">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="tx:TransactionItem">
+                                        <Grid Padding="0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon Glyph="&#xE81C;" FontSize="12" Margin="0,0,8,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{x:Bind TargetLocation}" Style="{ThemeResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Grid Grid.Row="4" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Width="16" Height="16" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

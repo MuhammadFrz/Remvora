@@ -5,16 +5,177 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Remvora.App.ViewModels"
     mc:Ignorable="d">
 
     <ScrollViewer Margin="24">
         <StackPanel Spacing="24" MaxWidth="800" HorizontalAlignment="Left">
             <StackPanel Spacing="4">
                 <TextBlock Text="Settings" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold"/>
-                <TextBlock Text="Preferences, safety policies, and diagnostic information." Style="{ThemeResource BodySubtleTextBlockStyle}"/>
+                <TextBlock Text="Preferences, differential updates, safety policies, and diagnostic telemetry." Style="{ThemeResource BodySubtleTextBlockStyle}"/>
             </StackPanel>
 
-            <!-- Safety & Protections -->
+            <!-- 1. Remvora Update Center -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Remvora Update Center" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                <Border
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                    BorderThickness="1.5"
+                    CornerRadius="8"
+                    Padding="20">
+                    <StackPanel Spacing="16">
+                        <!-- Top Row: Current Version & Actions -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="4">
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <TextBlock Text="Installed Version:" FontWeight="SemiBold"/>
+                                    <Border Background="#1F2937" CornerRadius="4" Padding="6,2">
+                                        <TextBlock Text="{x:Bind ViewModel.CurrentVersion, Mode=OneWay}" FontWeight="Bold" FontSize="12" Foreground="#38BDF8"/>
+                                    </Border>
+                                    <Border Background="#164E63" CornerRadius="4" Padding="6,2">
+                                        <TextBlock Text="Official Channel" FontWeight="SemiBold" FontSize="11" Foreground="#67E8F9"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+
+                            <!-- Check for Updates Button -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Button
+                                    Command="{x:Bind ViewModel.CheckForUpdatesCommand}"
+                                    IsEnabled="{x:Bind ViewModel.IsCheckingForUpdates, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
+                                    Padding="16,8">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <ProgressRing
+                                            IsActive="{x:Bind ViewModel.IsCheckingForUpdates, Mode=OneWay}"
+                                            Width="16" Height="16"
+                                            Visibility="{x:Bind ViewModel.IsCheckingForUpdates, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                        <FontIcon
+                                            Glyph="&#xE895;"
+                                            Visibility="{x:Bind ViewModel.IsCheckingForUpdates, Mode=OneWay, Converter={StaticResource InvertedBooleanToVisibilityConverter}}"/>
+                                        <TextBlock Text="Check for Updates"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Up to Date Banner -->
+                        <Border
+                            Background="#064E3B"
+                            BorderBrush="#059669"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12"
+                            Visibility="{x:Bind ViewModel.IsUpToDate, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE73E;" Foreground="#34D399"/>
+                                <TextBlock Text="Your installation is completely up to date. You have the latest performance improvements and safety heuristics." Foreground="White" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Update Available Card -->
+                        <Border
+                            Background="#1E2028"
+                            BorderBrush="#38BDF8"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="16"
+                            Visibility="{x:Bind ViewModel.IsUpdateAvailable, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel Spacing="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Spacing="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="Update Available:" FontWeight="Bold" FontSize="14"/>
+                                            <Border Background="#0369A1" CornerRadius="4" Padding="6,2">
+                                                <TextBlock Text="{x:Bind ViewModel.AvailableVersion, Mode=OneWay}" FontWeight="Bold" Foreground="White"/>
+                                            </Border>
+                                            <Border Background="#1E3A8A" CornerRadius="4" Padding="6,2">
+                                                <TextBlock Text="{x:Bind ViewModel.DownloadSizeText, Mode=OneWay}" FontSize="12" Foreground="#93C5FD"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="{x:Bind ViewModel.ReleaseNotes, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" MaxHeight="80"/>
+                                    </StackPanel>
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Command="{x:Bind ViewModel.DownloadUpdateCommand}"
+                                        IsEnabled="{x:Bind ViewModel.IsDownloading, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
+                                        Style="{ThemeResource AccentButtonStyle}"
+                                        Padding="16,8"
+                                        VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <ProgressRing
+                                                IsActive="{x:Bind ViewModel.IsDownloading, Mode=OneWay}"
+                                                Width="16" Height="16"
+                                                Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                            <FontIcon
+                                                Glyph="&#xE896;"
+                                                Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay, Converter={StaticResource InvertedBooleanToVisibilityConverter}}"/>
+                                            <TextBlock Text="Download Update"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <!-- Download Progress -->
+                                <ProgressBar
+                                    Value="{x:Bind ViewModel.DownloadProgress, Mode=OneWay}"
+                                    Maximum="100"
+                                    Height="6"
+                                    Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Ready to Restart Card -->
+                        <Border
+                            Background="#064E3B"
+                            BorderBrush="#10B981"
+                            BorderThickness="1.5"
+                            CornerRadius="6"
+                            Padding="16"
+                            Visibility="{x:Bind ViewModel.IsReadyToRestart, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE73E;" Foreground="#34D399" FontSize="18"/>
+                                        <TextBlock Text="Update Staged &amp; Verified" FontWeight="Bold" FontSize="14" Foreground="White"/>
+                                    </StackPanel>
+                                    <TextBlock Text="All differential binary components have been verified with SHA-256. Restart now to atomically swap the update in under 300ms." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="#D1D5DB"/>
+                                </StackPanel>
+
+                                <Button
+                                    Grid.Column="1"
+                                    Command="{x:Bind ViewModel.RestartAndApplyCommand}"
+                                    Style="{ThemeResource AccentButtonStyle}"
+                                    Padding="18,10"
+                                    VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE777;"/>
+                                        <TextBlock Text="Restart &amp; Apply Update" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 2. Safety & Protections -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Safety Invariants" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
@@ -25,7 +186,7 @@
                 </Border>
             </StackPanel>
 
-            <!-- Local Data Store -->
+            <!-- 3. Local Data Store -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Local Storage" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
@@ -36,14 +197,14 @@
                 </Border>
             </StackPanel>
 
-            <!-- About -->
+            <!-- 4. About Remvora -->
             <StackPanel Spacing="8">
                 <TextBlock Text="About Remvora" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
                     <StackPanel Spacing="8">
                         <TextBlock Text="Remvora — Windows Uninstaller &amp; Cleanup Utility" FontWeight="Bold"/>
                         <TextBlock Text="Version 1.0.0 • .NET 10 LTS • Windows App SDK 2.5.1" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Text="Designed for Windows 11 x64 with unelevated UI operation and on-demand privileged elevation worker." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                        <TextBlock Text="Designed for Windows 11 with unelevated UI operation, on-demand privileged elevation worker, and high-efficiency differential updating." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
             </StackPanel>

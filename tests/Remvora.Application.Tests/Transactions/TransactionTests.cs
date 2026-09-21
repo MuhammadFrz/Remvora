@@ -66,6 +66,12 @@ public sealed class TransactionTests
             }
             return Task.CompletedTask;
         }
+
+        public Task<OperationResult> DeleteTransactionAsync(Guid transactionId, CancellationToken cancellationToken = default)
+        {
+            Transactions.Remove(transactionId);
+            return Task.FromResult(OperationResult.Success());
+        }
     }
 
     private sealed class FakeTransactionBackupService : ITransactionBackupService

@@ -50,29 +50,65 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Summary Card -->
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Total Reclaimable Space" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                <TextBlock Text="{x:Bind ViewModel.TotalJunkSizeText, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
-                                <TextBlock Text="{x:Bind ViewModel.TotalJunkFilesText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}"/>
-                            </StackPanel>
-                            <Button Grid.Column="1" Command="{x:Bind ViewModel.CleanJunkCommand}" Style="{ThemeResource AccentButtonStyle}" Padding="20,10" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE74D;"/>
-                                    <TextBlock Text="Clean Selected Junk"/>
+                    <!-- Summary Card with Visual Storage Graph (Bugs 4 & 6) -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8" Padding="18" Margin="0,0,0,16">
+                        <Grid RowSpacing="12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Total Reclaimable Space" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.TotalJunkSizeText, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.TotalJunkFilesText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}"/>
                                 </StackPanel>
-                            </Button>
+                                <Button Grid.Column="1" Command="{x:Bind ViewModel.CleanJunkCommand}" Style="{ThemeResource AccentButtonStyle}" Padding="20,10" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE74D;"/>
+                                        <TextBlock Text="Clean Selected Junk"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <!-- Junk Distribution Progress Bar & Category Badges -->
+                            <StackPanel Grid.Row="1" Spacing="8">
+                                <ProgressBar
+                                    IsIndeterminate="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+                                    Value="100"
+                                    Maximum="100"
+                                    Height="8"
+                                    CornerRadius="4"
+                                    Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+
+                                <Grid ColumnDefinitions="*,*,*,*">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                        <TextBlock Text="Temp Files" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource SystemFillColorSuccessBrush}"/>
+                                        <TextBlock Text="System Cache" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource SystemFillColorCautionBrush}"/>
+                                        <TextBlock Text="Browser Data" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
+                                        <Ellipse Width="8" Height="8" Fill="{ThemeResource SystemFillColorAttentionBrush}"/>
+                                        <TextBlock Text="Crash Logs" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
-                    <!-- Junk Categories List -->
-                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <!-- Junk Categories List (Bug 6: High Contrast Border) -->
+                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8">
                         <ListView ItemsSource="{x:Bind ViewModel.JunkGroups, Mode=OneWay}" SelectionMode="None">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:JunkGroupViewModel">
@@ -112,7 +148,8 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                    <!-- Privacy Summary Card (Bug 6: High Contrast Border) -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8" Padding="16" Margin="0,0,0,16">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -131,7 +168,8 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                    <!-- Privacy Items List (Bug 6: High Contrast Border) -->
+                    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8">
                         <ListView ItemsSource="{x:Bind ViewModel.PrivacyItems, Mode=OneWay}" SelectionMode="None">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:PrivacyItemViewModel">
@@ -164,7 +202,8 @@
                     <FontIconSource Glyph="&#xE72E;"/>
                 </TabViewItem.IconSource>
                 <Grid Padding="0,16,0,0">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="24">
+                    <!-- Secure Shredder Card (Bug 6: High Contrast Border) -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8" Padding="24">
                         <StackPanel Spacing="20" MaxWidth="600" HorizontalAlignment="Left">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="Military-Grade File Obliteration" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
@@ -173,12 +212,20 @@
 
                             <StackPanel Spacing="8">
                                 <TextBlock Text="Target File Path" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                                <TextBox Text="{x:Bind ViewModel.ShredFilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="C:\path\to\sensitive_file.ext"/>
+                                <TextBox
+                                    Height="36"
+                                    VerticalContentAlignment="Center"
+                                    Padding="10,6,10,6"
+                                    Text="{x:Bind ViewModel.ShredFilePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    PlaceholderText="C:\path\to\sensitive_file.ext"/>
                             </StackPanel>
 
                             <StackPanel Spacing="8">
                                 <TextBlock Text="Wiping Standard / Algorithm" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                                <ComboBox SelectedItem="{x:Bind ViewModel.SelectedAlgorithm, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                <ComboBox
+                                    Height="36"
+                                    SelectedItem="{x:Bind ViewModel.SelectedAlgorithm, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch">
                                     <x:String>DoD 5220.22-M (3 Passes)</x:String>
                                     <x:String>NIST 800-88 (2 Passes)</x:String>
                                     <x:String>Pseudorandom (1 Pass)</x:String>

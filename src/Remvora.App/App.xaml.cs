@@ -157,20 +157,25 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<DatabaseMigrator>();
         services.AddSingleton<IApplicationRepository, SqliteApplicationRepository>();
         services.AddSingleton<Remvora.Application.Auditing.IAuditLogRepository, SqliteAuditLogRepository>();
+        services.AddSingleton<Remvora.Application.Stats.ICleaningStatsRepository, SqliteCleaningStatsRepository>();
 
         // Startup & Windows Apps Managers
         services.AddSingleton<Remvora.Application.Startup.IStartupManager, Remvora.Windows.Startup.WindowsStartupManager>();
         services.AddSingleton<Remvora.Application.WindowsApps.IWindowsAppsManager, Remvora.Windows.WindowsApps.WindowsPackageAppManager>();
 
-        // Cleaning & Shredder Services
+        // Cleaning, Shredder & System Scan Services
         services.AddSingleton<Remvora.Application.Cleaning.IJunkCleaner, Remvora.Windows.Cleaning.WindowsJunkCleaner>();
         services.AddSingleton<Remvora.Application.Cleaning.IPrivacyCleaner, Remvora.Windows.Cleaning.WindowsPrivacyCleaner>();
         services.AddSingleton<Remvora.Application.Cleaning.ISecureShredder, Remvora.Windows.Cleaning.WindowsSecureShredder>();
+        services.AddSingleton<Remvora.Application.Scanning.ISystemScanService, Remvora.Windows.Scanning.WindowsSystemScanService>();
 
         // Windows Tools Hub & Hunter Mode Services
         services.AddSingleton<Remvora.Application.Tools.IWindowsToolsService, Remvora.Windows.Tools.WindowsToolsService>();
         services.AddSingleton<Remvora.Application.Hunter.IHunterModeService, Remvora.Windows.Hunter.WindowsHunterModeService>();
         services.AddSingleton<Remvora.Application.Monitoring.IInstallationMonitorService, Remvora.Windows.Monitoring.WindowsInstallationMonitorService>();
+
+        // Update Service
+        services.AddSingleton<Remvora.Application.Updates.IUpdateService, Remvora.Windows.Updates.GitHubUpdateService>();
 
         // ViewModels
         services.AddTransient<AppsViewModel>();
@@ -179,10 +184,13 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddTransient<StartupViewModel>();
         services.AddTransient<WindowsAppsViewModel>();
         services.AddTransient<CleanerViewModel>();
+        services.AddTransient<ScanViewModel>();
         services.AddTransient<HunterViewModel>();
         services.AddTransient<WindowsToolsViewModel>();
         services.AddTransient<AuditLogViewModel>();
         services.AddTransient<InstallMonitorViewModel>();
+        services.AddTransient<BackupsViewModel>();
+        services.AddTransient<SettingsViewModel>();
 
         return services.BuildServiceProvider();
     }

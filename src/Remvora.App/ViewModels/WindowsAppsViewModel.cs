@@ -18,6 +18,7 @@ public sealed partial class WindowsAppItemViewModel : ObservableObject
     public string? InstallLocation => Model.InstallLocation;
     public bool IsSystemProtected => Model.IsSystemProtected;
     public bool IsBloatware => Model.IsBloatware;
+    public bool IsProvisioned => Model.IsProvisioned;
 
     public string BloatwareCategoryText => Model.BloatwareType switch
     {
@@ -63,6 +64,21 @@ public sealed partial class WindowsAppsViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string SelectedCategory { get; set; } = "All";
+
+    [ObservableProperty]
+    public partial bool FilterBloatware { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool FilterStore { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool FilterProvisioned { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool FilterSystem { get; set; } = false;
+
+    [ObservableProperty]
+    public partial string FilterSummaryText { get; set; } = "All Packages";
 
     [ObservableProperty]
     public partial string SummaryText { get; set; } = "0 packages";
@@ -119,6 +135,29 @@ public sealed partial class WindowsAppsViewModel : ObservableObject
     partial void OnSearchQueryChanged(string value) => ApplyFilter();
     partial void OnSelectedCategoryChanged(string value) => ApplyFilter();
 
+    partial void OnFilterBloatwareChanged(bool value) => OnFilterStateChanged();
+    partial void OnFilterStoreChanged(bool value) => OnFilterStateChanged();
+    partial void OnFilterProvisionedChanged(bool value) => OnFilterStateChanged();
+    partial void OnFilterSystemChanged(bool value) => OnFilterStateChanged();
+
+    private void OnFilterStateChanged()
+    {
+        var active = new List<string>();
+        if (FilterBloatware) active.Add("Bloatware");
+        if (FilterStore) active.Add("Store Apps");
+        if (FilterProvisioned) active.Add("Provisioned");
+        if (FilterSystem) active.Add("System");
+
+        FilterSummaryText = active.Count switch
+        {
+            0 => "Filters (None)",
+            4 => "All Packages",
+            _ => string.Join(", ", active)
+        };
+
+        ApplyFilter();
+    }
+
     private void ApplyFilter()
     {
         var query = _allPackages.AsEnumerable();
@@ -132,13 +171,18 @@ public sealed partial class WindowsAppsViewModel : ObservableObject
                 p.PackageFamilyName.Contains(trimmed, StringComparison.CurrentCultureIgnoreCase));
         }
 
-        query = SelectedCategory switch
+        if (!FilterBloatware && !FilterStore && !FilterSystem && !FilterProvisioned)
         {
-            "Bloatware" => query.Where(p => p.IsBloatware),
-            "Store Apps" => query.Where(p => !p.IsSystemProtected && !p.IsBloatware),
-            "System" => query.Where(p => p.IsSystemProtected),
-            _ => query
-        };
+            // All unchecked -> don't filter
+        }
+        else
+        {
+            query = query.Where(p =>
+                (FilterBloatware && p.IsBloatware) ||
+                (FilterStore && !p.IsSystemProtected && !p.IsBloatware && !p.IsProvisioned) ||
+                (FilterProvisioned && p.IsProvisioned) ||
+                (FilterSystem && p.IsSystemProtected));
+        }
 
         var list = query.OrderBy(p => p.DisplayName).ToList();
         FilteredPackages = new ObservableCollection<WindowsAppItemViewModel>(list);

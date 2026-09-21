@@ -34,6 +34,16 @@ namespace Remvora.Launcher
                 targetExe = Path.Combine(baseDir, "Remvora.App.exe");
             }
 
+            // Check for atomic update command
+            foreach (string arg in args)
+            {
+                if (arg.Equals("--apply-update", StringComparison.OrdinalIgnoreCase) ||
+                    arg.Equals("/apply-update", StringComparison.OrdinalIgnoreCase))
+                {
+                    return ApplyStagedUpdate(baseDir, localAppData, targetExe);
+                }
+            }
+
             bool hasNoInstallFlag = false;
             bool forceSetup = false;
             foreach (string arg in args)
@@ -139,6 +149,105 @@ namespace Remvora.Launcher
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
                 return 1;
+            }
+        }
+
+        private static int ApplyStagedUpdate(string baseDir, string localAppData, string targetExe)
+        {
+            try
+            {
+                string stagingDir = Path.Combine(baseDir, "updates", "staging");
+                if (!Directory.Exists(stagingDir))
+                {
+                    stagingDir = Path.Combine(localAppData, "Remvora", "updates", "staging");
+                }
+
+                if (!Directory.Exists(stagingDir))
+                {
+                    if (File.Exists(targetExe))
+                    {
+                        return LaunchProcess(targetExe, new string[0]);
+                    }
+                    return 0;
+                }
+
+                // Wait up to 6 seconds for running Remvora.App to exit so files are unlocked
+                WaitForProcessExit("Remvora.App", 6000);
+
+                string appDir = Path.Combine(baseDir, "app");
+                if (!Directory.Exists(appDir))
+                {
+                    appDir = baseDir;
+                }
+
+                // Copy all staged files into target app directory
+                string[] stagedFiles = Directory.GetFiles(stagingDir, "*.*", SearchOption.AllDirectories);
+                foreach (string file in stagedFiles)
+                {
+                    string fileName = Path.GetFileName(file);
+                    if (fileName.Equals("update.pending", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    string relativePath = file.Substring(stagingDir.Length).TrimStart('\\', '/');
+                    string destPath = Path.Combine(appDir, relativePath);
+                    string destDir = Path.GetDirectoryName(destPath);
+                    if (!Directory.Exists(destDir))
+                    {
+                        Directory.CreateDirectory(destDir);
+                    }
+
+                    File.Copy(file, destPath, true);
+                }
+
+                // Clean up staging
+                try
+                {
+                    Directory.Delete(stagingDir, true);
+                }
+                catch
+                {
+                    // Ignored
+                }
+
+                // Launch updated application
+                if (File.Exists(targetExe))
+                {
+                    return LaunchProcess(targetExe, new string[0]);
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Failed to apply update: " + ex.Message,
+                    "Remvora Update Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return 1;
+            }
+        }
+
+        private static void WaitForProcessExit(string processName, int timeoutMs)
+        {
+            int elapsed = 0;
+            while (elapsed < timeoutMs)
+            {
+                Process[] procs = Process.GetProcessesByName(processName);
+                if (procs == null || procs.Length == 0)
+                {
+                    return;
+                }
+
+                foreach (Process p in procs)
+                {
+                    try { p.Dispose(); } catch { }
+                }
+
+                System.Threading.Thread.Sleep(200);
+                elapsed += 200;
             }
         }
     }
@@ -926,6 +1035,15 @@ namespace Remvora.Launcher
         {
             base.OnPaint(e);
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+            if (this.Parent != null)
+            {
+                using (SolidBrush pb = new SolidBrush(this.Parent.BackColor))
+                {
+                    e.Graphics.FillRectangle(pb, this.ClientRectangle);
+                }
+            }
 
             Rectangle rect = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
             using (GraphicsPath path = GetRoundedPath(rect, BorderRadius))
@@ -935,9 +1053,13 @@ namespace Remvora.Launcher
                     e.Graphics.FillPath(brush, path);
                 }
 
-                using (Pen pen = new Pen(BorderColor, 1f))
+                if (BorderColor != Color.Transparent)
                 {
-                    e.Graphics.DrawPath(pen, path);
+                    using (Pen pen = new Pen(BorderColor, 1f))
+                    {
+                        pen.Alignment = PenAlignment.Inset;
+                        e.Graphics.DrawPath(pen, path);
+                    }
                 }
             }
         }
@@ -969,6 +1091,7 @@ namespace Remvora.Launcher
             this.FlatAppearance.BorderSize = 0;
             this.Cursor = Cursors.Hand;
             this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             BorderColor = Color.Transparent;
             HoverColor = Color.FromArgb(129, 140, 248);
             TextColor = Color.White;
@@ -1005,14 +1128,22 @@ namespace Remvora.Launcher
         protected override void OnPaint(PaintEventArgs pevent)
         {
             pevent.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            pevent.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             pevent.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+
+            // Clear parent background to eliminate jagged redraw residue
+            Color parentBg = this.Parent != null ? this.Parent.BackColor : Color.FromArgb(18, 19, 24);
+            using (SolidBrush parentBrush = new SolidBrush(parentBg))
+            {
+                pevent.Graphics.FillRectangle(parentBrush, this.ClientRectangle);
+            }
 
             Color fill = _isPressed ? Color.FromArgb(79, 70, 229) : (_isHovered ? HoverColor : this.BackColor);
             Rectangle rect = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
 
             using (GraphicsPath path = new GraphicsPath())
             {
-                int r = 6;
+                int r = 5;
                 int d = r * 2;
                 path.AddArc(rect.X, rect.Y, d, d, 180, 90);
                 path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
@@ -1029,20 +1160,19 @@ namespace Remvora.Launcher
                 {
                     using (Pen pen = new Pen(BorderColor, 1f))
                     {
+                        pen.Alignment = PenAlignment.Inset;
                         pevent.Graphics.DrawPath(pen, path);
                     }
                 }
             }
 
-            StringFormat sf = new StringFormat
-            {
-                Alignment = StringAlignment.Center,
-                LineAlignment = StringAlignment.Center
-            };
-            using (SolidBrush textBrush = new SolidBrush(TextColor))
-            {
-                pevent.Graphics.DrawString(this.Text, this.Font, textBrush, new RectangleF(0, 0, this.Width, this.Height), sf);
-            }
+            TextRenderer.DrawText(
+                pevent.Graphics,
+                this.Text,
+                this.Font,
+                this.ClientRectangle,
+                TextColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
         }
     }
 

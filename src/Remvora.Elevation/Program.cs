@@ -3,6 +3,7 @@ using Remvora.Elevation;
 
 string? pipeName = null;
 string? nonce = null;
+int? parentPid = null;
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -13,6 +14,10 @@ for (var i = 0; i < args.Length; i++)
     else if (string.Equals(args[i], "--nonce", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
     {
         nonce = args[++i];
+    }
+    else if (string.Equals(args[i], "--parent-pid", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length && int.TryParse(args[++i], out var parsedPid))
+    {
+        parentPid = parsedPid;
     }
 }
 
@@ -26,7 +31,7 @@ try
 {
     var policy = ProtectedPathsPolicy.Default;
     var executor = new ElevatedOperationExecutor(policy);
-    var server = new WorkerServer(pipeName, nonce, executor);
+    var server = new WorkerServer(pipeName, nonce, executor, parentPid);
 
     using var cts = new CancellationTokenSource();
     Console.CancelKeyPress += (s, e) =>

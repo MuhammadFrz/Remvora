@@ -205,4 +205,119 @@ public sealed class WorkerIpcTests
         client.Dispose();
         await serverTask;
     }
+
+    [Fact]
+    public async Task WorkerServer_WithMatchingParentPid_EstablishesSession()
+    {
+        var pipeName = $"Remvora.TestPipe.{Guid.NewGuid():N}";
+        var nonce = Guid.NewGuid().ToString("N");
+        var myPid = Environment.ProcessId;
+
+        var policy = ProtectedPathsPolicy.Default;
+        var executor = new ElevatedOperationExecutor(policy);
+        var server = new WorkerServer(pipeName, nonce, executor, expectedParentPid: myPid);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var serverTask = Task.Run(() => server.RunAsync(cts.Token));
+
+        using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        await client.ConnectAsync(cts.Token);
+
+        var handshakeRequest = new WorkerHandshakeRequest(myPid, nonce);
+        await IpcWireProtocol.WriteMessageAsync(client, handshakeRequest, cts.Token);
+        var handshakeResponse = await IpcWireProtocol.ReadMessageAsync<WorkerHandshakeResponse>(client, cts.Token);
+
+        handshakeResponse.Should().NotBeNull();
+        handshakeResponse!.IsAuthorized.Should().BeTrue();
+        handshakeResponse.SessionToken.Should().NotBeNullOrWhiteSpace();
+
+        client.Dispose();
+        await serverTask;
+    }
+
+    [Fact]
+    public async Task WorkerServer_WithMismatchedParentPid_RejectsHandshake()
+    {
+        var pipeName = $"Remvora.TestPipe.{Guid.NewGuid():N}";
+        var nonce = Guid.NewGuid().ToString("N");
+        var bogusExpectedPid = Environment.ProcessId + 99999;
+
+        var policy = ProtectedPathsPolicy.Default;
+        var executor = new ElevatedOperationExecutor(policy);
+        var server = new WorkerServer(pipeName, nonce, executor, expectedParentPid: bogusExpectedPid);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var serverTask = Task.Run(() => server.RunAsync(cts.Token));
+
+        using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        await client.ConnectAsync(cts.Token);
+
+        var handshakeRequest = new WorkerHandshakeRequest(Environment.ProcessId, nonce);
+        await IpcWireProtocol.WriteMessageAsync(client, handshakeRequest, cts.Token);
+        var handshakeResponse = await IpcWireProtocol.ReadMessageAsync<WorkerHandshakeResponse>(client, cts.Token);
+
+        handshakeResponse.Should().NotBeNull();
+        handshakeResponse!.IsAuthorized.Should().BeFalse();
+        handshakeResponse.RejectionReason.Should().Contain("Unauthorized client process ID");
+
+        client.Dispose();
+        await serverTask;
+    }
+
+    [Fact]
+    public async Task WorkerServer_ExecuteStopService_OnProtectedService_RefusesOperation()
+    {
+        var policy = ProtectedPathsPolicy.Default;
+        var executor = new ElevatedOperationExecutor(policy);
+
+        var opReq = new ElevatedOperationRequest(
+            correlationId: Guid.NewGuid(),
+            sessionToken: "test",
+            commandType: ElevatedCommandType.StopService,
+            target: "WinDefend");
+
+        var result = await executor.ExecuteAsync(opReq, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("protected Windows core service");
+    }
+
+    [Fact]
+    public async Task WorkerServer_ExecuteDeleteScheduledTask_OnProtectedTask_RefusesOperation()
+    {
+        var policy = ProtectedPathsPolicy.Default;
+        var executor = new ElevatedOperationExecutor(policy);
+
+        var opReq = new ElevatedOperationRequest(
+            correlationId: Guid.NewGuid(),
+            sessionToken: "test",
+            commandType: ElevatedCommandType.DeleteScheduledTask,
+            target: @"\Microsoft\Windows\Defrag\ScheduledDefrag");
+
+        var result = await executor.ExecuteAsync(opReq, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("protected Windows system task");
+    }
+
+    [Fact]
+    public async Task WorkerServer_ExecuteStopService_WithMaliciousChars_RejectsOperation()
+    {
+        var policy = ProtectedPathsPolicy.Default;
+        var executor = new ElevatedOperationExecutor(policy);
+
+        var opReq = new ElevatedOperationRequest(
+            correlationId: Guid.NewGuid(),
+            sessionToken: "test",
+            commandType: ElevatedCommandType.StopService,
+            target: "testService\" & calc.exe & \"");
+
+        var result = await executor.ExecuteAsync(opReq, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Invalid or malformed service name");
+    }
 }

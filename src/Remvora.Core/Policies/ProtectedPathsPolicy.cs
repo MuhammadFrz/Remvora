@@ -56,6 +56,8 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         if (!string.IsNullOrWhiteSpace(programData))
         {
+            AddExactProtection(programData, "Common ProgramData root directory");
+            AddExactProtection(Path.Combine(programData, "Microsoft"), "Microsoft shared program data root");
             AddPrefixProtection(Path.Combine(programData, "Microsoft", "Windows"), "Windows system program data");
             AddPrefixProtection(Path.Combine(programData, "Microsoft", "Crypto"), "System cryptographic keys");
         }
@@ -73,6 +75,30 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         {
             AddExactProtection(programFilesX86, "Program Files (x86) root folder");
             AddPrefixProtection(Path.Combine(programFilesX86, "Windows Defender"), "Windows Defender anti-malware");
+        }
+
+        // Protect user profile and personal anchors against full-directory deletion
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(userProfile))
+        {
+            AddExactProtection(userProfile, "User profile root directory");
+            AddExactProtection(Path.Combine(userProfile, "Desktop"), "User desktop folder root");
+            AddExactProtection(Path.Combine(userProfile, "Documents"), "User documents folder root");
+            AddExactProtection(Path.Combine(userProfile, "Downloads"), "User downloads folder root");
+        }
+
+        var localApp = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (!string.IsNullOrWhiteSpace(localApp))
+        {
+            AddExactProtection(localApp, "User Local AppData root");
+            AddExactProtection(Path.Combine(localApp, "Microsoft"), "Microsoft local application root");
+        }
+
+        var roamingApp = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        if (!string.IsNullOrWhiteSpace(roamingApp))
+        {
+            AddExactProtection(roamingApp, "User Roaming AppData root");
+            AddExactProtection(Path.Combine(roamingApp, "Microsoft"), "Microsoft roaming application root");
         }
 
         if (!string.IsNullOrWhiteSpace(remvoraInstallPath))
@@ -94,6 +120,12 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         AddPrefixRegistryProtection(@"HKEY_LOCAL_MACHINE\BCD00000000", "Windows Boot Configuration Data hive");
         AddPrefixRegistryProtection(@"HKLM\BCD00000000", "Windows Boot Configuration Data hive");
 
+        // Classes and COM roots
+        AddPrefixRegistryProtection(@"HKEY_CLASSES_ROOT", "Windows Classes and COM type library root");
+        AddPrefixRegistryProtection(@"HKCR", "Windows Classes and COM type library root");
+        AddPrefixRegistryProtection(@"HKEY_LOCAL_MACHINE\SOFTWARE\Classes", "Windows HKLM Classes root");
+        AddPrefixRegistryProtection(@"HKLM\SOFTWARE\Classes", "Windows HKLM Classes root");
+
         AddExactRegistryProtection(@"HKEY_LOCAL_MACHINE\SOFTWARE", "HKLM Software hive root");
         AddExactRegistryProtection(@"HKLM\SOFTWARE", "HKLM Software hive root");
         AddExactRegistryProtection(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft", "Microsoft software configuration root");
@@ -102,6 +134,15 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         AddExactRegistryProtection(@"HKLM\SOFTWARE\Microsoft\Windows", "Windows operating system registry root");
         AddExactRegistryProtection(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion", "Windows CurrentVersion configuration root");
         AddExactRegistryProtection(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion", "Windows CurrentVersion configuration root");
+
+        // Critical sub-branches of CurrentVersion
+        AddPrefixRegistryProtection(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies", "Windows System Policies root");
+        AddPrefixRegistryProtection(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies", "Windows System Policies root");
+        AddPrefixRegistryProtection(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer", "Windows Explorer shell root");
+        AddPrefixRegistryProtection(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer", "Windows Explorer shell root");
+        AddPrefixRegistryProtection(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing", "Windows CBS component store");
+        AddPrefixRegistryProtection(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing", "Windows CBS component store");
+
         AddPrefixRegistryProtection(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT", "Windows NT core kernel settings");
         AddPrefixRegistryProtection(@"HKLM\SOFTWARE\Microsoft\Windows NT", "Windows NT core kernel settings");
 
@@ -113,6 +154,11 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         AddExactRegistryProtection(@"HKCU\Software\Microsoft\Windows", "HKCU Windows settings root");
         AddExactRegistryProtection(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion", "HKCU Windows CurrentVersion settings root");
         AddExactRegistryProtection(@"HKCU\Software\Microsoft\Windows\CurrentVersion", "HKCU Windows CurrentVersion settings root");
+
+        AddPrefixRegistryProtection(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies", "User Windows Policies root");
+        AddPrefixRegistryProtection(@"HKCU\Software\Microsoft\Windows\CurrentVersion\Policies", "User Windows Policies root");
+        AddPrefixRegistryProtection(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer", "User Explorer configuration root");
+        AddPrefixRegistryProtection(@"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer", "User Explorer configuration root");
     }
 
     private void AddExactProtection(string path, string reason)

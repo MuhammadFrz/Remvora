@@ -12,7 +12,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private UpdateCheckResult? _currentUpdate;
 
     [ObservableProperty]
-    public partial string CurrentVersion { get; set; } = "1.2.1";
+    public partial string CurrentVersion { get; set; } = "1.2.2";
 
     [ObservableProperty]
     public partial bool IsCheckingForUpdates { get; set; }
@@ -193,7 +193,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             return $"{ver.Major}.{ver.Minor}.{ver.Build}";
         }
 
-        return "1.2.1";
+        return "1.2.2";
     }
 
     private static string FormatBytes(long bytes)

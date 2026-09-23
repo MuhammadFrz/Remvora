@@ -1,4 +1,8 @@
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using Microsoft.Win32.SafeHandles;
 using Remvora.Contracts;
 using Remvora.Contracts.Handshake;
 using Remvora.Contracts.Operations;
@@ -8,16 +12,18 @@ namespace Remvora.Elevation;
 /// <summary>
 /// Authenticated named pipe IPC server hosting the elevated worker session.
 /// </summary>
-public sealed class WorkerServer
+public sealed partial class WorkerServer
 {
     private readonly string _pipeName;
     private readonly string _expectedNonce;
     private readonly ElevatedOperationExecutor _executor;
+    private readonly int? _expectedParentPid;
 
     public WorkerServer(
         string pipeName,
         string expectedNonce,
-        ElevatedOperationExecutor executor)
+        ElevatedOperationExecutor executor,
+        int? expectedParentPid = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pipeName);
         ArgumentException.ThrowIfNullOrWhiteSpace(expectedNonce);
@@ -25,16 +31,63 @@ public sealed class WorkerServer
         _pipeName = pipeName;
         _expectedNonce = expectedNonce;
         _executor = executor ?? throw new ArgumentNullException(nameof(executor));
+        _expectedParentPid = expectedParentPid;
     }
 
-    public async Task RunAsync(CancellationToken cancellationToken = default)
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetNamedPipeClientProcessId(SafePipeHandle pipe, out uint clientProcessId);
+
+    private static NamedPipeServerStream CreatePipeServer(string pipeName)
     {
-        using var pipeServer = new NamedPipeServerStream(
-            _pipeName,
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                var pipeSecurity = new PipeSecurity();
+
+                var currentIdentity = WindowsIdentity.GetCurrent();
+                if (currentIdentity.User != null)
+                {
+                    pipeSecurity.AddAccessRule(new PipeAccessRule(
+                        currentIdentity.User,
+                        PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance,
+                        AccessControlType.Allow));
+                }
+
+                var adminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+                pipeSecurity.AddAccessRule(new PipeAccessRule(
+                    adminSid,
+                    PipeAccessRights.FullControl,
+                    AccessControlType.Allow));
+
+                return NamedPipeServerStreamAcl.Create(
+                    pipeName,
+                    PipeDirection.InOut,
+                    maxNumberOfServerInstances: 1,
+                    PipeTransmissionMode.Byte,
+                    PipeOptions.Asynchronous,
+                    inBufferSize: 0,
+                    outBufferSize: 0,
+                    pipeSecurity);
+            }
+            catch
+            {
+                // Fallback to standard server stream if ACL initialization fails
+            }
+        }
+
+        return new NamedPipeServerStream(
+            pipeName,
             PipeDirection.InOut,
             maxNumberOfServerInstances: 1,
             PipeTransmissionMode.Byte,
             PipeOptions.Asynchronous);
+    }
+
+    public async Task RunAsync(CancellationToken cancellationToken = default)
+    {
+        using var pipeServer = CreatePipeServer(_pipeName);
 
         using var handshakeCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(IpcConstants.HandshakeTimeoutMs));
         using var linkedHandshakeCts = CancellationTokenSource.CreateLinkedTokenSource(handshakeCts.Token, cancellationToken);
@@ -43,12 +96,29 @@ public sealed class WorkerServer
 
         // 1. Handshake
         var handshakeRequest = await IpcWireProtocol.ReadMessageAsync<WorkerHandshakeRequest>(pipeServer, linkedHandshakeCts.Token).ConfigureAwait(false);
-        if (handshakeRequest is null || !string.Equals(handshakeRequest.ClientNonce, _expectedNonce, StringComparison.Ordinal))
+
+        // Security: verify connected client OS Process ID via kernel32
+        uint connectedPid = 0;
+        bool pidValid = true;
+        if (OperatingSystem.IsWindows() && _expectedParentPid.HasValue)
         {
+            pidValid = GetNamedPipeClientProcessId(pipeServer.SafePipeHandle, out connectedPid) &&
+                       connectedPid == (uint)_expectedParentPid.Value;
+        }
+
+        if (handshakeRequest is null ||
+            !string.Equals(handshakeRequest.ClientNonce, _expectedNonce, StringComparison.Ordinal) ||
+            !pidValid ||
+            (_expectedParentPid.HasValue && handshakeRequest.ClientProcessId != _expectedParentPid.Value))
+        {
+            var rejectionReason = !pidValid
+                ? $"Authentication failed: Unauthorized client process ID (Expected: {_expectedParentPid?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "N/A"}, Connected: {connectedPid.ToString(System.Globalization.CultureInfo.InvariantCulture)})."
+                : "Authentication failed: Client credentials mismatch.";
+
             var rejection = new WorkerHandshakeResponse(
                 IsAuthorized: false,
                 ServerProcessId: Environment.ProcessId,
-                RejectionReason: "Authentication failed: Client nonce mismatch.");
+                RejectionReason: rejectionReason);
 
             await IpcWireProtocol.WriteMessageAsync(pipeServer, rejection, cancellationToken).ConfigureAwait(false);
             return;

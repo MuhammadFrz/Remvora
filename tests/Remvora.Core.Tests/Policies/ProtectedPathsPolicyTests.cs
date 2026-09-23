@@ -61,6 +61,11 @@ public sealed class ProtectedPathsPolicyTests
     [InlineData(@"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion")]
     [InlineData(@"HKCU\Software\Microsoft\Windows\CurrentVersion")]
     [InlineData(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion")]
+    [InlineData(@"HKCR")]
+    [InlineData(@"HKEY_CLASSES_ROOT\CLSID")]
+    [InlineData(@"HKLM\SOFTWARE\Classes")]
+    [InlineData(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")]
+    [InlineData(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")]
     public void IsRegistryKeyProtected_ForSystemRegistryBranches_ReturnsTrue(string registryKey)
     {
         var isProtected = _policy.IsRegistryKeyProtected(registryKey, out var reason);

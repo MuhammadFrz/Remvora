@@ -8,9 +8,9 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.2.1",
+    [string]$Version = "1.2.2",
     [string[]]$Architectures = @("win-x64", "win-arm64", "win-x86"),
-    [string]$ReleaseNotes = "- Fixed update downloading with local package fallback and resilient HTTP recovery`n- Added explicit 'Install Update & Restart' action button upon update download verification`n- Added comprehensive Remvora AI Agent engineering rules & standards (AGENTS.md)`n- Hardened update manifest JSON serialization with case-insensitive property handling"
+    [string]$ReleaseNotes = "- Comprehensive IPC authentication and Parent PID validation preventing named pipe hijacking`n- Hardened ElevatedOperationExecutor against command injection and service tampering`n- Strict mandatory SHA-256 update package verification with release checksum fallback`n- Protected critical Windows directories, user anchors, and core system registry subtrees"
 )
 
 $ErrorActionPreference = "Stop"

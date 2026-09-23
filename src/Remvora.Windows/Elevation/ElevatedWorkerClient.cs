@@ -42,7 +42,7 @@ public sealed partial class ElevatedWorkerClient : IElevatedWorkerClient
         var startInfo = new ProcessStartInfo
         {
             FileName = workerPath,
-            Arguments = $"--pipe {pipeName} --nonce {clientNonce}",
+            Arguments = $"--pipe {pipeName} --nonce {clientNonce} --parent-pid {Environment.ProcessId}",
             UseShellExecute = requestElevation,
             Verb = requestElevation ? "runas" : string.Empty,
             CreateNoWindow = !requestElevation

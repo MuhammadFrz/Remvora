@@ -76,7 +76,7 @@ public sealed partial class GitHubUpdateService : IUpdateService
                     if (apiResponse.IsSuccessStatusCode)
                     {
                         var releaseDoc = await apiResponse.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(cancellationToken: cancellationToken).ConfigureAwait(false);
-                        manifest = TryParseManifestFromGitHubRelease(releaseDoc);
+                        manifest = await TryParseManifestFromGitHubReleaseAsync(releaseDoc, HttpClient, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
@@ -254,12 +254,16 @@ public sealed partial class GitHubUpdateService : IUpdateService
                 }
             }
 
-            // 2. Verify SHA-256 integrity
-            if (!string.IsNullOrWhiteSpace(update.PackageSha256))
+            // 2. Verify SHA-256 integrity (Strict: updates without cryptographic checksums are rejected)
+            if (string.IsNullOrWhiteSpace(update.PackageSha256))
             {
-                LogVerifyingChecksum(_logger, update.PackageSha256);
-                using var sha256 = SHA256.Create();
-                await using var stream = File.OpenRead(tempZipPath);
+                return OperationResult.Failure(ErrorCode.ValidationFailed, "Downloaded update package rejected: missing cryptographic SHA-256 checksum in release manifest.");
+            }
+
+            LogVerifyingChecksum(_logger, update.PackageSha256);
+            using var sha256 = SHA256.Create();
+            await using (var stream = File.OpenRead(tempZipPath))
+            {
                 var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
                 var actualHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
 
@@ -346,7 +350,7 @@ public sealed partial class GitHubUpdateService : IUpdateService
             return $"{ver.Major}.{ver.Minor}.{ver.Build}";
         }
 
-        return "1.2.1";
+        return "1.2.2";
     }
 
     private static Version ParseVersion(string version)
@@ -431,6 +435,7 @@ public sealed partial class GitHubUpdateService : IUpdateService
         var appDataReleases = Path.Combine(localAppData, "Remvora", "releases", "manifest.json");
         if (File.Exists(appDataReleases)) return appDataReleases;
 
+#if DEBUG
         string[] devCandidates =
         [
             @"D:\Github\Remvora\releases\manifest.json",
@@ -441,11 +446,12 @@ public sealed partial class GitHubUpdateService : IUpdateService
         {
             if (File.Exists(candidate)) return candidate;
         }
+#endif
 
         return probe;
     }
 
-    private static UpdateManifest? TryParseManifestFromGitHubRelease(System.Text.Json.JsonElement root)
+    private static async Task<UpdateManifest?> TryParseManifestFromGitHubReleaseAsync(System.Text.Json.JsonElement root, HttpClient httpClient, CancellationToken cancellationToken)
     {
         try
         {
@@ -459,6 +465,40 @@ public sealed partial class GitHubUpdateService : IUpdateService
             if (root.TryGetProperty("assets", out var assetsElem) && assetsElem.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
                 var assets = assetsElem.EnumerateArray().ToList();
+
+                // Download and parse checksums-sha256.txt if available
+                var checksumMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var checksumAsset = assets.FirstOrDefault(a =>
+                    a.TryGetProperty("name", out var n) &&
+                    string.Equals(n.GetString(), "checksums-sha256.txt", StringComparison.OrdinalIgnoreCase));
+
+                if (checksumAsset.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                    checksumAsset.TryGetProperty("browser_download_url", out var csUrlProp))
+                {
+                    var csUrl = csUrlProp.GetString();
+                    if (!string.IsNullOrWhiteSpace(csUrl))
+                    {
+                        try
+                        {
+                            var csContent = await httpClient.GetStringAsync(csUrl, cancellationToken).ConfigureAwait(false);
+                            foreach (var line in csContent.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+                            {
+                                var parts = line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
+                                if (parts.Length >= 2)
+                                {
+                                    var hash = parts[0].Trim();
+                                    var file = parts[1].Trim().TrimStart('*');
+                                    checksumMap[file] = hash;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // If checksum fetch fails, packages without hashes will be excluded
+                        }
+                    }
+                }
+
                 string[] archs = ["win-x64", "win-arm64", "win-x86"];
 
                 foreach (var arch in archs)
@@ -471,22 +511,29 @@ public sealed partial class GitHubUpdateService : IUpdateService
                         var name = asset.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
                         var url = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() ?? "" : "";
                         var size = asset.TryGetProperty("size", out var s) ? s.GetInt64() : 0L;
+                        var sha = checksumMap.TryGetValue(name, out var sVal) ? sVal : string.Empty;
 
                         if (name.Contains(arch, StringComparison.OrdinalIgnoreCase))
                         {
                             if (name.EndsWith("-delta.zip", StringComparison.OrdinalIgnoreCase))
                             {
-                                deltaPkg = new UpdateArchiveInfo { Url = url, Sha256 = string.Empty, SizeBytes = size };
+                                deltaPkg = new UpdateArchiveInfo { Url = url, Sha256 = sha, SizeBytes = size };
                             }
                             else if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                             {
-                                fullPkg = new UpdateArchiveInfo { Url = url, Sha256 = string.Empty, SizeBytes = size };
+                                fullPkg = new UpdateArchiveInfo { Url = url, Sha256 = sha, SizeBytes = size };
                             }
                         }
                     }
 
-                    if (fullPkg != null)
+                    // Only accept packages that have verified SHA-256 checksums
+                    if (fullPkg != null && !string.IsNullOrWhiteSpace(fullPkg.Sha256))
                     {
+                        if (deltaPkg != null && string.IsNullOrWhiteSpace(deltaPkg.Sha256))
+                        {
+                            deltaPkg = null;
+                        }
+
                         packages[arch] = new UpdatePackageInfo
                         {
                             FullPackage = fullPkg,
@@ -494,6 +541,11 @@ public sealed partial class GitHubUpdateService : IUpdateService
                         };
                     }
                 }
+            }
+
+            if (packages.Count == 0)
+            {
+                return null;
             }
 
             return new UpdateManifest

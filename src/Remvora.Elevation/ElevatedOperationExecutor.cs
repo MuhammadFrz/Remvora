@@ -180,9 +180,69 @@ public sealed class ElevatedOperationExecutor
         }
     }
 
+    private static readonly HashSet<string> s_protectedServices = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "WinDefend",
+        "mpssvc",
+        "SecurityHealthService",
+        "Sense",
+        "WdNisSvc",
+        "EventLog",
+        "RpcSs",
+        "RpcEptMapper",
+        "DcomLaunch",
+        "PlugPlay",
+        "LanmanWorkstation",
+        "LanmanServer",
+        "wuauserv",
+        "CryptSvc",
+        "TrustedInstaller",
+        "sppsvc",
+        "BFE",
+        "SamSs",
+        "LSM",
+        "TermService",
+        "BrokerInfrastructure",
+        "DsmSvc"
+    };
+
+    private static readonly string[] s_protectedTaskPrefixes =
+    [
+        @"\Microsoft\Windows\",
+        @"Microsoft\Windows\",
+        @"\Microsoft\",
+        @"Microsoft\"
+    ];
+
+    private static bool IsValidServiceName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 256)
+            return false;
+
+        return !name.Any(c => c is '"' or '/' or '\\' or ';' or '&' or '|' or '<' or '>' or '\r' or '\n');
+    }
+
+    private static bool IsValidTaskPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || path.Length > 512)
+            return false;
+
+        return !path.Any(c => c is '"' or ';' or '&' or '|' or '<' or '>' or '\r' or '\n');
+    }
+
     private static async Task<ElevatedOperationResult> ExecuteStopServiceAsync(ElevatedOperationRequest request, CancellationToken cancellationToken)
     {
-        var serviceName = request.Target;
+        var serviceName = request.Target?.Trim() ?? string.Empty;
+        if (!IsValidServiceName(serviceName))
+        {
+            return new ElevatedOperationResult(request.CorrelationId, IsSuccess: false, ErrorCode: 8, ErrorMessage: "Invalid or malformed service name.");
+        }
+
+        if (s_protectedServices.Contains(serviceName))
+        {
+            return new ElevatedOperationResult(request.CorrelationId, IsSuccess: false, ErrorCode: 8, ErrorMessage: $"Service '{serviceName}' is a protected Windows core service and cannot be stopped.");
+        }
+
         try
         {
             var psi = new ProcessStartInfo
@@ -209,7 +269,17 @@ public sealed class ElevatedOperationExecutor
 
     private static async Task<ElevatedOperationResult> ExecuteDeleteServiceAsync(ElevatedOperationRequest request, CancellationToken cancellationToken)
     {
-        var serviceName = request.Target;
+        var serviceName = request.Target?.Trim() ?? string.Empty;
+        if (!IsValidServiceName(serviceName))
+        {
+            return new ElevatedOperationResult(request.CorrelationId, IsSuccess: false, ErrorCode: 8, ErrorMessage: "Invalid or malformed service name.");
+        }
+
+        if (s_protectedServices.Contains(serviceName))
+        {
+            return new ElevatedOperationResult(request.CorrelationId, IsSuccess: false, ErrorCode: 8, ErrorMessage: $"Service '{serviceName}' is a protected Windows core service and cannot be deleted.");
+        }
+
         try
         {
             var psi = new ProcessStartInfo
@@ -236,7 +306,20 @@ public sealed class ElevatedOperationExecutor
 
     private static async Task<ElevatedOperationResult> ExecuteDeleteScheduledTaskAsync(ElevatedOperationRequest request, CancellationToken cancellationToken)
     {
-        var taskPath = request.Target;
+        var taskPath = request.Target?.Trim() ?? string.Empty;
+        if (!IsValidTaskPath(taskPath))
+        {
+            return new ElevatedOperationResult(request.CorrelationId, IsSuccess: false, ErrorCode: 8, ErrorMessage: "Invalid or malformed scheduled task path.");
+        }
+
+        foreach (var prefix in s_protectedTaskPrefixes)
+        {
+            if (taskPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return new ElevatedOperationResult(request.CorrelationId, IsSuccess: false, ErrorCode: 8, ErrorMessage: $"Scheduled task '{taskPath}' is a protected Windows system task and cannot be deleted.");
+            }
+        }
+
         try
         {
             var psi = new ProcessStartInfo

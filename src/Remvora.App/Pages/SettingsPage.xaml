@@ -73,10 +73,27 @@
                             CornerRadius="6"
                             Padding="12"
                             Visibility="{x:Bind ViewModel.IsUpToDate, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                <FontIcon Glyph="&#xE73E;" Foreground="#34D399"/>
-                                <TextBlock Text="Your installation is completely up to date. You have the latest performance improvements and safety heuristics." Foreground="White" FontWeight="SemiBold"/>
-                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE73E;" Foreground="#34D399"/>
+                                    <TextBlock Text="Your installation is up to date with the latest release." Foreground="White" FontWeight="SemiBold"/>
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    Command="{x:Bind ViewModel.ReinstallOrRepairCommand}"
+                                    Style="{ThemeResource DefaultButtonStyle}"
+                                    Padding="12,4"
+                                    VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE896;" FontSize="12"/>
+                                        <TextBlock Text="Re-download &amp; Verify Package" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
                         </Border>
 
                         <!-- Update Available Card -->
@@ -171,6 +188,51 @@
                                 </Button>
                             </Grid>
                         </Border>
+
+                        <!-- GitHub API / Private Repo Configuration (Optional) -->
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch">
+                            <Expander.Header>
+                                <Grid Width="700">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE72D;" Foreground="#94A3B8"/>
+                                        <TextBlock Text="GitHub Private Repository &amp; Token Configuration" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="#1E293B" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind ViewModel.GitHubTokenStatus, Mode=OneWay}" FontSize="11" Foreground="#94A3B8"/>
+                                    </Border>
+                                </Grid>
+                            </Expander.Header>
+                            <StackPanel Spacing="10" Margin="0,8,0,0">
+                                <TextBlock Text="If your Remvora repository is private or you encounter GitHub API rate limits, enter a GitHub Personal Access Token (PAT) with 'repo' scope." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <PasswordBox
+                                        Password="{x:Bind ViewModel.GitHubTokenInput, Mode=TwoWay}"
+                                        PlaceholderText="ghp_xxxxxxxxxxxxxxxxxxxx"
+                                        PasswordRevealMode="Peek"/>
+                                    <Button
+                                        Grid.Column="1"
+                                        Command="{x:Bind ViewModel.SaveGitHubTokenCommand}"
+                                        Content="Save Token"
+                                        Style="{ThemeResource AccentButtonStyle}"/>
+                                    <Button
+                                        Grid.Column="2"
+                                        Command="{x:Bind ViewModel.ClearGitHubTokenCommand}"
+                                        Content="Clear"
+                                        IsEnabled="{x:Bind ViewModel.HasConfiguredToken, Mode=OneWay}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
                 </Border>
             </StackPanel>

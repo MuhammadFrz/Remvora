@@ -1,58 +1,58 @@
 ﻿{
-    "ReleaseDate":  "2026-09-23T05:54:02Z",
+    "ReleaseDate":  "2026-09-23T06:23:19Z",
     "ReleaseNotes":  "- Comprehensive IPC authentication and Parent PID validation preventing named pipe hijacking\n- Hardened ElevatedOperationExecutor against command injection and service tampering\n- Strict mandatory SHA-256 update package verification with release checksum fallback\n- Protected critical Windows directories, user anchors, and core system registry subtrees",
     "Version":  "1.2.2",
     "MinDeltaVersion":  "1.0.0",
     "Packages":  {
                      "win-x64":  {
                                      "FullPackage":  {
-                                                         "SizeBytes":  95725660,
+                                                         "SizeBytes":  95736431,
                                                          "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-v1.2.2-win-x64.zip",
-                                                         "Sha256":  "d333beff833fcafeacfcbb5b708231a5ab15e1099314fa08e5b09f972b7cc599"
+                                                         "Sha256":  "2bff2d713f9163bc3e1e816ebe9cce44741e1d4a545f9b721bfd4992c5a29010"
                                                      },
                                      "InstallerExe":  {
-                                                          "SizeBytes":  95840768,
+                                                          "SizeBytes":  95851520,
                                                           "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-Setup-v1.2.2-win-x64.exe",
-                                                          "Sha256":  "b90fa22fb19651769683f49d37a80cfe4f1959ac8fccc2e46558143b68e70c0b"
+                                                          "Sha256":  "14d3069b900a798b329b4a9889f5b2729fbdce5e2e71b5fe71c2b216240772c4"
                                                       },
                                      "DeltaPackage":  {
-                                                          "SizeBytes":  1652150,
+                                                          "SizeBytes":  1662794,
                                                           "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-v1.2.2-win-x64-delta.zip",
-                                                          "Sha256":  "6f51ae540d1e35af0156c1b08026504995bffd718fe70c0aee90cf3812961d9e"
+                                                          "Sha256":  "17edf9543c1d9028bc025ba6a9bf7df142b8f96dbb928aca87043eceb2dcf115"
                                                       }
                                  },
                      "win-x86":  {
                                      "FullPackage":  {
-                                                         "SizeBytes":  67795791,
+                                                         "SizeBytes":  67806991,
                                                          "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-v1.2.2-win-x86.zip",
-                                                         "Sha256":  "4cfe4b8dd61cb3b0016d4e0eba65095fe8437b5268ea2c81a2dd41b5ba65ae18"
+                                                         "Sha256":  "482529295d420a51bb87f5e80f0a1c963f59861092b36ae204934dd289a9bd1a"
                                                      },
                                      "InstallerExe":  {
-                                                          "SizeBytes":  67911168,
+                                                          "SizeBytes":  67922432,
                                                           "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-Setup-v1.2.2-win-x86.exe",
-                                                          "Sha256":  "ccc1a9a09c373300d29eda564f2dc9f9a76dbc3755d1c20b170b353de9d406f9"
+                                                          "Sha256":  "246d9c8671a596eee382424aa3562b59d6443e1b45cf3cdaec36c85b673928e5"
                                                       },
                                      "DeltaPackage":  {
-                                                          "SizeBytes":  1627917,
+                                                          "SizeBytes":  1638990,
                                                           "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-v1.2.2-win-x86-delta.zip",
-                                                          "Sha256":  "95a0911e56517c7f3c4e244708b360655db6ff92706dc7ab1251eb261e86c3b6"
+                                                          "Sha256":  "b159bc39bcae5a64037df6ace6bb65689e5c4fd2aa8b6c0c00d503c2c809f232"
                                                       }
                                  },
                      "win-arm64":  {
                                        "FullPackage":  {
-                                                           "SizeBytes":  92817660,
+                                                           "SizeBytes":  92828825,
                                                            "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-v1.2.2-win-arm64.zip",
-                                                           "Sha256":  "047096dd4f1069adf96db04a617137cd5b8ed31df04e088ac8ea3b433b91c6ca"
+                                                           "Sha256":  "454f6f9067ee0509b7904006ddd3dffa8560b60a0016fdb95e4d930f7954b36e"
                                                        },
                                        "InstallerExe":  {
-                                                            "SizeBytes":  92933120,
+                                                            "SizeBytes":  92943872,
                                                             "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-Setup-v1.2.2-win-arm64.exe",
-                                                            "Sha256":  "357db0d0822161f935d8dcadf26a458197a06366634b03f5885ac7a31559ce7a"
+                                                            "Sha256":  "bc7038bbdd08f8118d58019b8ce1dbbfbfcf0b21bab634210a7414f6c0fe38e1"
                                                         },
                                        "DeltaPackage":  {
-                                                            "SizeBytes":  1630415,
+                                                            "SizeBytes":  1641453,
                                                             "Url":  "https://github.com/MuhammadFrz/Remvora/releases/download/v1.2.2/Remvora-v1.2.2-win-arm64-delta.zip",
-                                                            "Sha256":  "e0bf78c95eac194b853b8940b50514af1f050fcd3683874805127d92ae9d8fd3"
+                                                            "Sha256":  "14ec3d46b7986de9c2ebcce6249929be2021884d79cd13697e0e4dee8bcc73fb"
                                                         }
                                    }
                  }

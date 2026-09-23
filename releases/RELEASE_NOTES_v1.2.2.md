@@ -51,12 +51,12 @@ Get-FileHash -Algorithm SHA256 <FileName>
 
 | File Name | Size | SHA-256 Checksum |
 | :--- | :--- | :--- |
-| `Remvora-Setup-v1.2.2-win-x64.exe` | 91.40 MB | `b90fa22fb19651769683f49d37a80cfe4f1959ac8fccc2e46558143b68e70c0b` |
-| `Remvora-v1.2.2-win-x64.zip` | 91.29 MB | `d333beff833fcafeacfcbb5b708231a5ab15e1099314fa08e5b09f972b7cc599` |
-| `Remvora-v1.2.2-win-x64-delta.zip` | 1.58 MB | `6f51ae540d1e35af0156c1b08026504995bffd718fe70c0aee90cf3812961d9e` |
-| `Remvora-Setup-v1.2.2-win-arm64.exe` | 88.63 MB | `357db0d0822161f935d8dcadf26a458197a06366634b03f5885ac7a31559ce7a` |
-| `Remvora-v1.2.2-win-arm64.zip` | 88.52 MB | `047096dd4f1069adf96db04a617137cd5b8ed31df04e088ac8ea3b433b91c6ca` |
-| `Remvora-v1.2.2-win-arm64-delta.zip` | 1.55 MB | `e0bf78c95eac194b853b8940b50514af1f050fcd3683874805127d92ae9d8fd3` |
-| `Remvora-Setup-v1.2.2-win-x86.exe` | 64.77 MB | `ccc1a9a09c373300d29eda564f2dc9f9a76dbc3755d1c20b170b353de9d406f9` |
-| `Remvora-v1.2.2-win-x86.zip` | 64.66 MB | `4cfe4b8dd61cb3b0016d4e0eba65095fe8437b5268ea2c81a2dd41b5ba65ae18` |
-| `Remvora-v1.2.2-win-x86-delta.zip` | 1.55 MB | `95a0911e56517c7f3c4e244708b360655db6ff92706dc7ab1251eb261e86c3b6` |
+| `Remvora-Setup-v1.2.2-win-x64.exe` | 91.41 MB | `14d3069b900a798b329b4a9889f5b2729fbdce5e2e71b5fe71c2b216240772c4` |
+| `Remvora-v1.2.2-win-x64.zip` | 91.30 MB | `2bff2d713f9163bc3e1e816ebe9cce44741e1d4a545f9b721bfd4992c5a29010` |
+| `Remvora-v1.2.2-win-x64-delta.zip` | 1.59 MB | `17edf9543c1d9028bc025ba6a9bf7df142b8f96dbb928aca87043eceb2dcf115` |
+| `Remvora-Setup-v1.2.2-win-arm64.exe` | 88.64 MB | `bc7038bbdd08f8118d58019b8ce1dbbfbfcf0b21bab634210a7414f6c0fe38e1` |
+| `Remvora-v1.2.2-win-arm64.zip` | 88.53 MB | `454f6f9067ee0509b7904006ddd3dffa8560b60a0016fdb95e4d930f7954b36e` |
+| `Remvora-v1.2.2-win-arm64-delta.zip` | 1.57 MB | `14ec3d46b7986de9c2ebcce6249929be2021884d79cd13697e0e4dee8bcc73fb` |
+| `Remvora-Setup-v1.2.2-win-x86.exe` | 64.78 MB | `246d9c8671a596eee382424aa3562b59d6443e1b45cf3cdaec36c85b673928e5` |
+| `Remvora-v1.2.2-win-x86.zip` | 64.67 MB | `482529295d420a51bb87f5e80f0a1c963f59861092b36ae204934dd289a9bd1a` |
+| `Remvora-v1.2.2-win-x86-delta.zip` | 1.56 MB | `b159bc39bcae5a64037df6ace6bb65689e5c4fd2aa8b6c0c00d503c2c809f232` |

@@ -53,12 +53,22 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial double DownloadProgress { get; set; }
 
+    [ObservableProperty]
+    public partial string GitHubTokenInput { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string GitHubTokenStatus { get; set; } = "Public access only";
+
+    [ObservableProperty]
+    public partial bool HasConfiguredToken { get; set; }
+
     public string AboutVersionText => $"Version {CurrentVersion} • .NET 10 LTS • Windows App SDK 2.5.1";
 
     public SettingsViewModel(IUpdateService updateService)
     {
         _updateService = updateService ?? throw new ArgumentNullException(nameof(updateService));
         CurrentVersion = GetAppVersion();
+        RefreshTokenStatus();
     }
 
     [RelayCommand]
@@ -69,7 +79,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         IsUpdateAvailable = false;
         IsUpToDate = false;
         IsReadyToRestart = false;
-        StatusMessage = "Connecting to release server...";
+        StatusMessage = "Connecting to release endpoints...";
 
         try
         {
@@ -116,9 +126,36 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void ReinstallOrRepair()
+    {
+        if (_currentUpdate != null && !string.IsNullOrWhiteSpace(_currentUpdate.DownloadUrl))
+        {
+            IsUpToDate = false;
+            IsUpdateAvailable = true;
+            AvailableVersion = _currentUpdate.LatestVersion;
+            ReleaseDate = _currentUpdate.ReleaseDate;
+            ReleaseNotes = string.IsNullOrWhiteSpace(_currentUpdate.ReleaseNotes)
+                ? "Reinstalling current release package."
+                : _currentUpdate.ReleaseNotes;
+            IsDeltaUpdate = _currentUpdate.IsDeltaAvailable;
+
+            var sizeFormatted = FormatBytes(_currentUpdate.DownloadSizeBytes);
+            DownloadSizeText = _currentUpdate.IsDeltaAvailable
+                ? $"{sizeFormatted} (Differential Delta Patch)"
+                : $"{sizeFormatted} (Full Installer Package)";
+
+            StatusMessage = $"Ready to re-download and reinstall Remvora v{AvailableVersion}.";
+        }
+        else
+        {
+            StatusMessage = "Please click 'Check for Updates' first to locate the release packages.";
+        }
+    }
+
+    [RelayCommand]
     public async Task DownloadUpdateAsync()
     {
-        if (_currentUpdate == null || !_currentUpdate.IsUpdateAvailable)
+        if (_currentUpdate == null || string.IsNullOrWhiteSpace(_currentUpdate.DownloadUrl))
         {
             return;
         }
@@ -177,14 +214,96 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    public void SaveGitHubToken()
+    {
+        if (string.IsNullOrWhiteSpace(GitHubTokenInput))
+        {
+            ClearGitHubToken();
+            return;
+        }
+
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var dir = Path.Combine(localAppData, "Remvora");
+            Directory.CreateDirectory(dir);
+            var tokenFile = Path.Combine(dir, "github_token.txt");
+            File.WriteAllText(tokenFile, GitHubTokenInput.Trim());
+            HasConfiguredToken = true;
+            GitHubTokenStatus = "Configured (Active)";
+            StatusMessage = "GitHub Personal Access Token saved successfully.";
+            GitHubTokenInput = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to save token: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public void ClearGitHubToken()
+    {
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var tokenFile = Path.Combine(localAppData, "Remvora", "github_token.txt");
+            if (File.Exists(tokenFile))
+            {
+                File.Delete(tokenFile);
+            }
+            HasConfiguredToken = false;
+            GitHubTokenStatus = "Public access only";
+            StatusMessage = "GitHub token removed.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to remove token: {ex.Message}";
+        }
+    }
+
+    private void RefreshTokenStatus()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var tokenFile = Path.Combine(localAppData, "Remvora", "github_token.txt");
+        if (File.Exists(tokenFile))
+        {
+            HasConfiguredToken = true;
+            GitHubTokenStatus = "Configured (Active)";
+            return;
+        }
+
+        var envToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN")
+            ?? Environment.GetEnvironmentVariable("GH_TOKEN")
+            ?? Environment.GetEnvironmentVariable("REMVORA_GITHUB_TOKEN");
+        if (!string.IsNullOrWhiteSpace(envToken))
+        {
+            HasConfiguredToken = true;
+            GitHubTokenStatus = "Environment variable (Active)";
+            return;
+        }
+
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (File.Exists(Path.Combine(userProfile, "Desktop", "gh", ".env")) ||
+            File.Exists(Path.Combine(userProfile, ".remvora", "token.txt")))
+        {
+            HasConfiguredToken = true;
+            GitHubTokenStatus = "Discovered in local config";
+            return;
+        }
+
+        HasConfiguredToken = false;
+        GitHubTokenStatus = "Public access only";
+    }
+
     private static string GetAppVersion()
     {
         var assembly = Assembly.GetEntryAssembly() ?? typeof(SettingsViewModel).Assembly;
         var infoVer = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         if (!string.IsNullOrWhiteSpace(infoVer))
         {
-            var plus = infoVer.IndexOf('+', StringComparison.Ordinal);
-            return plus > 0 ? infoVer[..plus] : infoVer;
+            var plusIdx = infoVer.IndexOf('+', StringComparison.Ordinal);
+            return plusIdx > 0 ? infoVer[..plusIdx] : infoVer;
         }
 
         var ver = assembly.GetName().Version;

@@ -82,6 +82,19 @@ if (Test-Path $srcUninstall) {
     Copy-Item -Path $srcUninstall -Destination $installedUninstallScript -Force
 }
 
+# 3b. Copy release manifest and checksums if available
+$releasesSrcDir = Join-Path $rootDir "releases"
+if (Test-Path $releasesSrcDir) {
+    $installReleasesDir = Join-Path $installDir "releases"
+    if (-not (Test-Path $installReleasesDir)) { New-Item -ItemType Directory -Path $installReleasesDir -Force | Out-Null }
+    if (Test-Path (Join-Path $releasesSrcDir "manifest.json")) {
+        Copy-Item -Path (Join-Path $releasesSrcDir "manifest.json") -Destination $installReleasesDir -Force
+    }
+    if (Test-Path (Join-Path $releasesSrcDir "checksums-sha256.txt")) {
+        Copy-Item -Path (Join-Path $releasesSrcDir "checksums-sha256.txt") -Destination $installReleasesDir -Force
+    }
+}
+
 # 4. Shortcut target
 $primaryExe = if (Test-Path (Join-Path $installDir "Remvora.exe")) {
     Join-Path $installDir "Remvora.exe"

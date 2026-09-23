@@ -31,6 +31,7 @@ public sealed record UpdateArchiveInfo
     public string Url { get; init; } = string.Empty;
     public string Sha256 { get; init; } = string.Empty;
     public long SizeBytes { get; init; }
+    public long? AssetId { get; init; }
 }
 
 /// <summary>
@@ -58,6 +59,7 @@ public sealed record UpdateCheckResult
     public string DownloadUrl { get; init; } = string.Empty;
     public string PackageSha256 { get; init; } = string.Empty;
     public string? ErrorMessage { get; init; }
+    public long? AssetId { get; init; }
 }
 
 /// <summary>

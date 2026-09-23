@@ -9,7 +9,8 @@
 [CmdletBinding()]
 param(
     [string]$Version = "1.2.1",
-    [string[]]$Architectures = @("win-x64", "win-arm64", "win-x86")
+    [string[]]$Architectures = @("win-x64", "win-arm64", "win-x86"),
+    [string]$ReleaseNotes = "- Fixed update downloading with local package fallback and resilient HTTP recovery`n- Added explicit 'Install Update & Restart' action button upon update download verification`n- Added comprehensive Remvora AI Agent engineering rules & standards (AGENTS.md)`n- Hardened update manifest JSON serialization with case-insensitive property handling"
 )
 
 $ErrorActionPreference = "Stop"
@@ -158,7 +159,7 @@ $checksumPath = Join-Path $releasesDir "checksums-sha256.txt"
 $manifestObj = @{
     Version = $Version
     ReleaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-    ReleaseNotes = "- Overhauled System Cleaner with deep scanning and safe file deletion`n- Added real-time progress bar with live percentage and file counters`n- Added standalone single-file installer (Setup.exe) with embedded payload"
+    ReleaseNotes = $ReleaseNotes
     MinDeltaVersion = "1.0.0"
     Packages = $packagesManifest
 }

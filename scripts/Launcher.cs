@@ -15,9 +15,9 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("Remvora")]
 [assembly: AssemblyCompany("Remvora")]
 [assembly: AssemblyCopyright("Copyright © 2026 Remvora")]
-[assembly: AssemblyVersion("1.2.2.0")]
-[assembly: AssemblyFileVersion("1.2.2.0")]
-[assembly: AssemblyInformationalVersion("1.2.2")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]
+[assembly: AssemblyInformationalVersion("1.3.0")]
 
 namespace Remvora.Launcher
 {

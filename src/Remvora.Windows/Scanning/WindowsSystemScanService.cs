@@ -38,66 +38,87 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
     }
 
     public async Task<IReadOnlyList<ScanGroup>> ScanSystemAsync(
+        IEnumerable<ScanCategory>? categoriesToScan = null,
         IProgress<ScanProgressReport>? progress = null,
         CancellationToken cancellationToken = default)
     {
         LogScanStarted(_logger);
         var groups = new List<ScanGroup>();
 
+        var catList = categoriesToScan?.ToList();
+        var shouldScanAll = catList == null || catList.Count == 0;
+        var selectedCats = shouldScanAll ? null : catList!.ToHashSet();
+
         int totalItems = 0;
         long totalBytes = 0;
 
         // 1. Redundant Windows Files
-        progress?.Report(new ScanProgressReport("Scanning Redundant Windows Files", "Temporary folders and error dumps", totalItems, totalBytes, 10));
-        var redundantItems = ScanWindowsRedundantFiles();
-        totalItems += redundantItems.Count;
-        totalBytes += redundantItems.Sum(i => i.SizeBytes);
-        groups.Add(new ScanGroup
+        if (shouldScanAll || selectedCats!.Contains(ScanCategory.WindowsRedundant))
         {
-            Category = ScanCategory.WindowsRedundant,
-            Title = "Redundant System Clutter",
-            Description = "Temporary files, memory error dumps, Windows Update payloads, and crash logs safe for removal.",
-            Items = redundantItems
-        });
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Report(new ScanProgressReport("Scanning Redundant Windows Files", "Temporary folders and error dumps", totalItems, totalBytes, 10));
+            var redundantItems = await Task.Run(ScanWindowsRedundantFiles, cancellationToken).ConfigureAwait(false);
+            totalItems += redundantItems.Count;
+            totalBytes += redundantItems.Sum(i => i.SizeBytes);
+            groups.Add(new ScanGroup
+            {
+                Category = ScanCategory.WindowsRedundant,
+                Title = "Redundant System Clutter",
+                Description = "Temporary files, memory error dumps, Windows Update payloads, and crash logs safe for removal.",
+                Items = redundantItems
+            });
+        }
 
         // 2. Application & Browser Caches
-        progress?.Report(new ScanProgressReport("Scanning Application Caches", "Browser and client caches", totalItems, totalBytes, 35));
-        var cacheItems = ScanApplicationCaches();
-        totalItems += cacheItems.Count;
-        totalBytes += cacheItems.Sum(i => i.SizeBytes);
-        groups.Add(new ScanGroup
+        if (shouldScanAll || selectedCats!.Contains(ScanCategory.AppCache))
         {
-            Category = ScanCategory.AppCache,
-            Title = "Application & Browser Caches",
-            Description = "Discardable shader, GPU, web, and streaming media caches (Chrome, Edge, Discord, Spotify, etc.).",
-            Items = cacheItems
-        });
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Report(new ScanProgressReport("Scanning Application Caches", "Browser and client caches", totalItems, totalBytes, 35));
+            var cacheItems = await Task.Run(ScanApplicationCaches, cancellationToken).ConfigureAwait(false);
+            totalItems += cacheItems.Count;
+            totalBytes += cacheItems.Sum(i => i.SizeBytes);
+            groups.Add(new ScanGroup
+            {
+                Category = ScanCategory.AppCache,
+                Title = "Application & Browser Caches",
+                Description = "Discardable shader, GPU, web, and streaming media caches (Chrome, Edge, Discord, Spotify, etc.).",
+                Items = cacheItems
+            });
+        }
 
         // 3. Orphaned Leftovers from Prior Uninstalls
-        progress?.Report(new ScanProgressReport("Scanning Orphaned Remnants", "Analyzing %AppData% & ProgramData", totalItems, totalBytes, 65));
-        var leftoverItems = await ScanOrphanedLeftoversAsync(cancellationToken).ConfigureAwait(false);
-        totalItems += leftoverItems.Count;
-        totalBytes += leftoverItems.Sum(i => i.SizeBytes);
-        groups.Add(new ScanGroup
+        if (shouldScanAll || selectedCats!.Contains(ScanCategory.OrphanedLeftovers))
         {
-            Category = ScanCategory.OrphanedLeftovers,
-            Title = "Orphaned App Remnants",
-            Description = "Folders and broken shortcuts lingering from software that was previously uninstalled.",
-            Items = leftoverItems
-        });
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Report(new ScanProgressReport("Scanning Orphaned Remnants", "Analyzing %AppData% & ProgramData", totalItems, totalBytes, 65));
+            var leftoverItems = await ScanOrphanedLeftoversAsync(cancellationToken).ConfigureAwait(false);
+            totalItems += leftoverItems.Count;
+            totalBytes += leftoverItems.Sum(i => i.SizeBytes);
+            groups.Add(new ScanGroup
+            {
+                Category = ScanCategory.OrphanedLeftovers,
+                Title = "Orphaned App Remnants",
+                Description = "Folders and broken shortcuts lingering from software that was previously uninstalled.",
+                Items = leftoverItems
+            });
+        }
 
         // 4. Broken App Issues & Damaged Registrations
-        progress?.Report(new ScanProgressReport("Analyzing Application Health", "Checking registry and broken paths", totalItems, totalBytes, 90));
-        var issueItems = ScanAppIssues();
-        totalItems += issueItems.Count;
-        totalBytes += issueItems.Sum(i => i.SizeBytes);
-        groups.Add(new ScanGroup
+        if (shouldScanAll || selectedCats!.Contains(ScanCategory.AppIssues))
         {
-            Category = ScanCategory.AppIssues,
-            Title = "Damaged App Registrations",
-            Description = "Orphaned registry uninstall entries and broken shortcuts pointing to deleted executables.",
-            Items = issueItems
-        });
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Report(new ScanProgressReport("Analyzing Application Health", "Checking registry and broken paths", totalItems, totalBytes, 90));
+            var issueItems = await Task.Run(ScanAppIssues, cancellationToken).ConfigureAwait(false);
+            totalItems += issueItems.Count;
+            totalBytes += issueItems.Sum(i => i.SizeBytes);
+            groups.Add(new ScanGroup
+            {
+                Category = ScanCategory.AppIssues,
+                Title = "Damaged App Registrations",
+                Description = "Orphaned registry uninstall entries and broken shortcuts pointing to deleted executables.",
+                Items = issueItems
+            });
+        }
 
         progress?.Report(new ScanProgressReport("Scan Complete", "Ready for review", totalItems, totalBytes, 100));
         LogScanCompleted(_logger, totalItems, totalBytes);
@@ -119,88 +140,91 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
 
         LogCleanStarted(_logger, itemList.Count);
 
-        for (int i = 0; i < itemList.Count; i++)
+        return await Task.Run(async () =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var item = itemList[i];
-
-            progress?.Report(new ScanProgressReport(
-                $"Cleaning ({i + 1}/{itemList.Count})",
-                item.Title,
-                removed,
-                reclaimedBytes,
-                (int)((double)(i + 1) / itemList.Count * 100)));
-
-            try
+            for (int i = 0; i < itemList.Count; i++)
             {
-                if (item.Category == ScanCategory.AppIssues && item.TargetPath.StartsWith("HK", StringComparison.OrdinalIgnoreCase))
+                cancellationToken.ThrowIfCancellationRequested();
+                var item = itemList[i];
+
+                progress?.Report(new ScanProgressReport(
+                    $"Purging ({i + 1}/{itemList.Count})",
+                    item.Title,
+                    removed,
+                    reclaimedBytes,
+                    (int)((double)(i + 1) / itemList.Count * 100)));
+
+                try
                 {
-                    if (_protectedPathsPolicy.IsRegistryKeyProtected(item.TargetPath, out var regReason))
+                    if (item.Category == ScanCategory.AppIssues && item.TargetPath.StartsWith("HK", StringComparison.OrdinalIgnoreCase))
                     {
-                        errors.Add($"Protected registry key skipped: {item.TargetPath} ({regReason})");
+                        if (_protectedPathsPolicy.IsRegistryKeyProtected(item.TargetPath, out var regReason))
+                        {
+                            errors.Add($"Protected registry key skipped: {item.TargetPath} ({regReason})");
+                            continue;
+                        }
+
+                        // Registry issue
+                        CleanRegistryEntry(item.TargetPath);
+                        removed++;
                         continue;
                     }
 
-                    // Registry issue
-                    CleanRegistryEntry(item.TargetPath);
-                    removed++;
-                    continue;
-                }
-
-                if (_protectedPathsPolicy.IsPathProtected(item.TargetPath, out var reason))
-                {
-                    errors.Add($"Protected path skipped: {item.TargetPath} ({reason})");
-                    continue;
-                }
-
-                if (File.Exists(item.TargetPath))
-                {
-                    var size = new FileInfo(item.TargetPath).Length;
-                    File.Delete(item.TargetPath);
-                    removed++;
-                    reclaimedBytes += size;
-                }
-                else if (Directory.Exists(item.TargetPath))
-                {
-                    bool shouldDeleteFolderItself = item.Category == ScanCategory.OrphanedLeftovers;
-                    var (subRemoved, subBytes) = CleanDirectoryContents(item.TargetPath, shouldDeleteFolderItself, _protectedPathsPolicy);
-                    if (subRemoved > 0 || subBytes > 0)
+                    if (_protectedPathsPolicy.IsPathProtected(item.TargetPath, out var reason))
                     {
-                        removed += subRemoved;
-                        reclaimedBytes += subBytes;
+                        errors.Add($"Protected path skipped: {item.TargetPath} ({reason})");
+                        continue;
                     }
-                    else if (shouldDeleteFolderItself)
+
+                    if (File.Exists(item.TargetPath))
                     {
-                        try
+                        var size = new FileInfo(item.TargetPath).Length;
+                        File.Delete(item.TargetPath);
+                        removed++;
+                        reclaimedBytes += size;
+                    }
+                    else if (Directory.Exists(item.TargetPath))
+                    {
+                        bool shouldDeleteFolderItself = item.Category == ScanCategory.OrphanedLeftovers;
+                        var (subRemoved, subBytes) = CleanDirectoryContents(item.TargetPath, shouldDeleteFolderItself, _protectedPathsPolicy);
+                        if (subRemoved > 0 || subBytes > 0)
                         {
-                            Directory.Delete(item.TargetPath, recursive: true);
-                            removed++;
+                            removed += subRemoved;
+                            reclaimedBytes += subBytes;
                         }
-                        catch { }
+                        else if (shouldDeleteFolderItself)
+                        {
+                            try
+                            {
+                                Directory.Delete(item.TargetPath, recursive: true);
+                                removed++;
+                            }
+                            catch { }
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    LogCleanItemFailed(_logger, ex, item.TargetPath);
+                    errors.Add($"{Path.GetFileName(item.TargetPath)}: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+
+            // Record lifetime statistics
+            if (removed > 0 || reclaimedBytes > 0)
             {
-                LogCleanItemFailed(_logger, ex, item.TargetPath);
-                errors.Add($"{Path.GetFileName(item.TargetPath)}: {ex.Message}");
+                await _statsRepository.RecordEventAsync(new CleaningStatEvent(
+                    Guid.NewGuid(),
+                    DateTimeOffset.UtcNow,
+                    CleaningCategory.SystemScan,
+                    removed,
+                    reclaimedBytes,
+                    $"Deep System Scan cleaned {removed} items across categories."), cancellationToken).ConfigureAwait(false);
             }
-        }
 
-        // Record lifetime statistics
-        if (removed > 0 || reclaimedBytes > 0)
-        {
-            await _statsRepository.RecordEventAsync(new CleaningStatEvent(
-                Guid.NewGuid(),
-                DateTimeOffset.UtcNow,
-                CleaningCategory.SystemScan,
-                removed,
-                reclaimedBytes,
-                $"Deep System Scan cleaned {removed} items across categories."), cancellationToken).ConfigureAwait(false);
-        }
-
-        LogCleanFinished(_logger, removed, reclaimedBytes, errors.Count);
-        return new ScanCleanupResult(removed, reclaimedBytes, errors);
+            LogCleanFinished(_logger, removed, reclaimedBytes, errors.Count);
+            return new ScanCleanupResult(removed, reclaimedBytes, errors);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static List<ScanItem> ScanWindowsRedundantFiles()

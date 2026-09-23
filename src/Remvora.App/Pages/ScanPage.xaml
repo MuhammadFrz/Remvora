@@ -28,7 +28,7 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <Button
                     Command="{x:Bind ViewModel.StartScanCommand}"
-                    IsEnabled="{x:Bind ViewModel.IsScanning, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
+                    IsEnabled="{x:Bind ViewModel.CanStartScan, Mode=OneWay}"
                     Style="{ThemeResource AccentButtonStyle}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE72C;"/>
@@ -67,7 +67,7 @@
                         <TextBlock Text="Scan your machine to discover hidden clutter, redundant system dumps, browser caches, orphaned files from removed apps, and damaged registry uninstall entries." Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap"/>
                     </StackPanel>
 
-                    <!-- Feature Highlights Grid -->
+                    <!-- Feature Highlights & Selection Grid -->
                     <Grid ColumnSpacing="12" RowSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -80,57 +80,82 @@
 
                         <!-- Redundant Files -->
                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
-                            <StackPanel Spacing="4">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE770;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
-                                    <TextBlock Text="Redundant Files" FontWeight="SemiBold"/>
+                            <Grid ColumnDefinitions="Auto,*">
+                                <CheckBox
+                                    IsChecked="{x:Bind ViewModel.IsScanRedundantSelected, Mode=TwoWay}"
+                                    VerticalAlignment="Top"
+                                    Margin="0,0,10,0"/>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE770;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                        <TextBlock Text="Redundant Files" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Crash dumps, Windows Update download cache, and crash logs." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <TextBlock Text="Crash dumps, Windows Update download cache, and crash logs." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                            </StackPanel>
+                            </Grid>
                         </Border>
 
                         <!-- App & Browser Caches -->
                         <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
-                            <StackPanel Spacing="4">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE81E;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
-                                    <TextBlock Text="App &amp; Browser Caches" FontWeight="SemiBold"/>
+                            <Grid ColumnDefinitions="Auto,*">
+                                <CheckBox
+                                    IsChecked="{x:Bind ViewModel.IsScanAppCacheSelected, Mode=TwoWay}"
+                                    VerticalAlignment="Top"
+                                    Margin="0,0,10,0"/>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE81E;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                        <TextBlock Text="App &amp; Browser Caches" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Chrome, Edge, Firefox, Brave, Discord, Spotify, and editor caches." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <TextBlock Text="Chrome, Edge, Firefox, Brave, Discord, Spotify, and editor caches." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                            </StackPanel>
+                            </Grid>
                         </Border>
 
                         <!-- Orphaned Leftovers -->
                         <Border Grid.Row="1" Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
-                            <StackPanel Spacing="4">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE74D;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
-                                    <TextBlock Text="Orphaned Leftovers" FontWeight="SemiBold"/>
+                            <Grid ColumnDefinitions="Auto,*">
+                                <CheckBox
+                                    IsChecked="{x:Bind ViewModel.IsScanOrphansSelected, Mode=TwoWay}"
+                                    VerticalAlignment="Top"
+                                    Margin="0,0,10,0"/>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE74D;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                        <TextBlock Text="Orphaned Leftovers" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Residual folders in AppData, LocalAppData, and dead desktop shortcuts." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <TextBlock Text="Residual folders in AppData, LocalAppData, and dead desktop shortcuts." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                            </StackPanel>
+                            </Grid>
                         </Border>
 
                         <!-- App Issues -->
                         <Border Grid.Row="1" Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
-                            <StackPanel Spacing="4">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE783;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
-                                    <TextBlock Text="App Issues &amp; Registrations" FontWeight="SemiBold"/>
+                            <Grid ColumnDefinitions="Auto,*">
+                                <CheckBox
+                                    IsChecked="{x:Bind ViewModel.IsScanIssuesSelected, Mode=TwoWay}"
+                                    VerticalAlignment="Top"
+                                    Margin="0,0,10,0"/>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE783;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                        <TextBlock Text="App Issues &amp; Registrations" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Broken uninstall keys pointing to missing or deleted software." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <TextBlock Text="Broken uninstall keys pointing to missing or deleted software." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                            </StackPanel>
+                            </Grid>
                         </Border>
                     </Grid>
 
                     <Button
                         Command="{x:Bind ViewModel.StartScanCommand}"
+                        IsEnabled="{x:Bind ViewModel.CanStartScan, Mode=OneWay}"
                         Style="{ThemeResource AccentButtonStyle}"
                         HorizontalAlignment="Center"
                         Padding="32,12">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <FontIcon Glyph="&#xE773;" FontSize="18"/>
-                            <TextBlock Text="Start Full System Scan" FontWeight="SemiBold"/>
+                            <TextBlock Text="{x:Bind ViewModel.ScanButtonText, Mode=OneWay}" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -184,10 +209,11 @@
             <Grid Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Metrics & Actions Summary Header Card -->
+                <!-- Metrics Summary Header Card -->
                 <Border
                     Grid.Row="0"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -195,58 +221,82 @@
                     BorderThickness="1.5"
                     CornerRadius="8"
                     Padding="18"
-                    Margin="0,0,0,16">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Orientation="Horizontal" Spacing="24" VerticalAlignment="Center">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="Total Issues Discovered" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                <TextBlock Text="{x:Bind ViewModel.TotalFoundCount, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold"/>
-                            </StackPanel>
-
-                            <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}"/>
-
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="Total Reclaimable Space" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                <TextBlock Text="{x:Bind ViewModel.TotalFoundSizeText, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
-                            </StackPanel>
-
-                            <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}"/>
-
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="Selected for Cleanup" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <TextBlock Text="{x:Bind ViewModel.TotalSelectedCount, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="items" Style="{ThemeResource CaptionTextBlockStyle}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
-                                    <TextBlock Text="•" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
-                                    <TextBlock Text="{x:Bind ViewModel.TotalSelectedSizeText, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </StackPanel>
+                    Margin="0,0,0,12">
+                    <StackPanel Orientation="Horizontal" Spacing="24" VerticalAlignment="Center">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Total Issues Discovered" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.TotalFoundCount, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                            <Button Content="Select All" Command="{x:Bind ViewModel.SelectAllCommand}"/>
-                            <Button Content="Clear Selection" Command="{x:Bind ViewModel.ClearAllCommand}"/>
-                            <Button
-                                Command="{x:Bind ViewModel.CleanSelectedCommand}"
-                                IsEnabled="{x:Bind ViewModel.HasSelectedItems, Mode=OneWay}"
-                                Style="{ThemeResource AccentButtonStyle}"
-                                Padding="18,10">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE74D;"/>
-                                    <TextBlock Text="Clean Selected Issues"/>
-                                </StackPanel>
-                            </Button>
+                        <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}"/>
+
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Total Reclaimable Space" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.TotalFoundSizeText, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
                         </StackPanel>
-                    </Grid>
+
+                        <Border Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}"/>
+
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Selected for Cleanup" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{x:Bind ViewModel.TotalSelectedCount, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                                <TextBlock Text="items" Style="{ThemeResource CaptionTextBlockStyle}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                <TextBlock Text="•" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                <TextBlock Text="{x:Bind ViewModel.TotalSelectedSizeText, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
                 </Border>
 
+                <!-- Selection Toolbar Pattern (Rule 4) -->
+                <Grid Grid.Row="1" Margin="4,0,4,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox
+                        Content="Select all"
+                        IsChecked="{x:Bind ViewModel.IsAllSelected, Mode=TwoWay}"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"/>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{x:Bind ViewModel.SelectionSummaryText, Mode=OneWay}"
+                        Style="{ThemeResource CaptionTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        VerticalAlignment="Center"
+                        Margin="8,0,0,0"/>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button
+                            Command="{x:Bind ViewModel.ClearAllCommand}"
+                            Style="{ThemeResource SubtleButtonStyle}"
+                            Padding="8,5"
+                            VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE894;" FontSize="12"/>
+                                <TextBlock Text="Clear selection" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            Command="{x:Bind ViewModel.CleanSelectedCommand}"
+                            IsEnabled="{x:Bind ViewModel.HasSelectedItems, Mode=OneWay}"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            Padding="18,8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE74D;"/>
+                                <TextBlock Text="Clean Selected Issues" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
                 <!-- Category Groups List -->
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{x:Bind ViewModel.Groups, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ScanGroupViewModel">
@@ -270,7 +320,6 @@
                                             <!-- Group Checkbox -->
                                             <CheckBox
                                                 IsChecked="{x:Bind IsAllSelected, Mode=TwoWay}"
-                                                Command="{x:Bind ToggleGroupSelectionCommand}"
                                                 VerticalAlignment="Center"
                                                 Margin="0,0,12,0"/>
 
@@ -343,89 +392,102 @@
                 </ScrollViewer>
             </Grid>
 
-            <!-- 4. Cleaning Progress Overlay -->
-            <Border
-                Width="480"
-                HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{StaticResource ModalCardBackgroundBrush}"
-                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
-                BorderThickness="1"
-                CornerRadius="12"
-                Padding="28"
-                Visibility="{x:Bind ViewModel.IsCleaning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <StackPanel Spacing="20">
-                    <StackPanel Orientation="Horizontal" Spacing="14">
-                        <ProgressRing IsActive="True" Width="40" Height="40" VerticalAlignment="Center"/>
-                        <StackPanel VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Text="Cleaning Selected Items..." Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
-                            <TextBlock Text="{x:Bind ViewModel.CurrentStepText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                    </StackPanel>
-
-                    <Grid Margin="0,4,0,0">
-                        <TextBlock Text="Progress" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Text="{x:Bind ViewModel.ScanProgressPercentText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Right"/>
-                    </Grid>
-                    <ProgressBar Value="{x:Bind ViewModel.ScanProgressPercent, Mode=OneWay}" Maximum="100" Height="6"/>
-
-                    <TextBlock
-                        Text="{x:Bind ViewModel.CurrentTargetText, Mode=OneWay}"
-                        Style="{ThemeResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                        TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
-            </Border>
-
-            <!-- 5. Completion Summary Modal -->
-            <Border
-                Width="520"
-                HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{StaticResource ModalCardBackgroundBrush}"
-                BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
-                BorderThickness="1"
-                CornerRadius="12"
-                Padding="28"
-                Visibility="{x:Bind ViewModel.IsCleanSummaryOpen, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <StackPanel Spacing="20">
-                    <StackPanel Orientation="Horizontal" Spacing="14">
-                        <Border Width="48" Height="48" CornerRadius="24" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xE73E;" FontSize="24" Foreground="{ThemeResource SystemFillColorSuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <StackPanel VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Text="System Cleanup Completed" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
-                            <TextBlock Text="Selected redundant files, caches, and issues were processed." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        </StackPanel>
-                    </StackPanel>
-
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="14">
-                            <StackPanel Spacing="2" HorizontalAlignment="Center">
-                                <TextBlock Text="{x:Bind ViewModel.CleanResultItemsRemoved, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource SystemFillColorSuccessBrush}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Items Cleaned" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+            <!-- 4. Cleaning Progress Overlay (Full Scrim & Card) -->
+            <Grid
+                Visibility="{x:Bind ViewModel.IsCleaning, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Background="#CC0B0D14"
+                Margin="-24"
+                Canvas.ZIndex="100">
+                <Border
+                    Width="500"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#181A22"
+                    BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                    BorderThickness="1.5"
+                    CornerRadius="16"
+                    Padding="32">
+                    <StackPanel Spacing="20">
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <ProgressRing IsActive="True" Width="42" Height="42" VerticalAlignment="Center"/>
+                            <StackPanel VerticalAlignment="Center" Spacing="4">
+                                <TextBlock Text="Purging Selected Items..." Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                                <TextBlock Text="{x:Bind ViewModel.CurrentStepText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                        </Border>
+                        </StackPanel>
 
-                        <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="8" Padding="14">
-                            <StackPanel Spacing="2" HorizontalAlignment="Center">
-                                <TextBlock Text="{x:Bind ViewModel.CleanResultBytesReclaimedText, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Space Reclaimed" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                        <Grid Margin="0,4,0,0">
+                            <TextBlock Text="Purge Progress" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{x:Bind ViewModel.ScanProgressPercentText, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <ProgressBar Value="{x:Bind ViewModel.ScanProgressPercent, Mode=OneWay}" Maximum="100" Height="8" CornerRadius="4"/>
+
+                        <Border Background="#1F2330" CornerRadius="8" Padding="12,8">
+                            <TextBlock
+                                Text="{x:Bind ViewModel.CurrentTargetText, Mode=OneWay}"
+                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 5. Completion Summary Modal (Fluent Dark Styling & Scrim) -->
+            <Grid
+                Visibility="{x:Bind ViewModel.IsCleanSummaryOpen, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Background="#CC0B0D14"
+                Margin="-24"
+                Canvas.ZIndex="100">
+                <Border
+                    Width="520"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#181A22"
+                    BorderBrush="{StaticResource HighContrastCardStrokeBrush}"
+                    BorderThickness="1.5"
+                    CornerRadius="16"
+                    Padding="32">
+                    <StackPanel Spacing="24">
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <Border Width="50" Height="50" CornerRadius="25" Background="#10382B" BorderBrush="#059669" BorderThickness="1.5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE73E;" FontSize="24" Foreground="#34D399" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center" Spacing="4">
+                                <TextBlock Text="System Cleanup Completed" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="Bold"/>
+                                <TextBlock Text="Selected redundant files, caches, and issues were processed." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                             </StackPanel>
-                        </Border>
-                    </Grid>
+                        </StackPanel>
 
-                    <Button
-                        Content="Done"
-                        Style="{ThemeResource AccentButtonStyle}"
-                        Command="{x:Bind ViewModel.CloseCleanSummaryCommand}"
-                        HorizontalAlignment="Right"
-                        MinWidth="100"/>
-                </StackPanel>
-            </Border>
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Background="#1F2330" BorderBrush="#2A2F40" BorderThickness="1" CornerRadius="10" Padding="16">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <TextBlock Text="{x:Bind ViewModel.CleanResultItemsRemoved, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Items Cleaned" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Background="#1F2330" BorderBrush="#2A2F40" BorderThickness="1" CornerRadius="10" Padding="16">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <TextBlock Text="{x:Bind ViewModel.CleanResultBytesReclaimedText, Mode=OneWay}" Style="{ThemeResource TitleTextBlockStyle}" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Space Reclaimed" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Button
+                            Content="Done"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.CloseCleanSummaryCommand}"
+                            HorizontalAlignment="Right"
+                            MinWidth="110"
+                            Padding="20,8"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </Page>

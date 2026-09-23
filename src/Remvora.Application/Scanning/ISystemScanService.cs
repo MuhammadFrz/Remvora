@@ -8,9 +8,10 @@ namespace Remvora.Application.Scanning;
 public interface ISystemScanService
 {
     /// <summary>
-    /// Executes a deep scan across all system categories.
+    /// Executes a deep scan across specified or all system categories.
     /// </summary>
     Task<IReadOnlyList<ScanGroup>> ScanSystemAsync(
+        IEnumerable<ScanCategory>? categoriesToScan = null,
         IProgress<ScanProgressReport>? progress = null,
         CancellationToken cancellationToken = default);
 

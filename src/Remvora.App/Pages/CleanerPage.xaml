@@ -132,7 +132,6 @@
                         <CheckBox
                             Content="Select all"
                             IsChecked="{x:Bind ViewModel.IsAllJunkSelected, Mode=TwoWay}"
-                            Command="{x:Bind ViewModel.ToggleSelectAllJunkCommand}"
                             FontWeight="SemiBold"
                             VerticalAlignment="Center"/>
 
@@ -230,7 +229,6 @@
                         <CheckBox
                             Content="Select all"
                             IsChecked="{x:Bind ViewModel.IsAllPrivacySelected, Mode=TwoWay}"
-                            Command="{x:Bind ViewModel.ToggleSelectAllPrivacyCommand}"
                             FontWeight="SemiBold"
                             VerticalAlignment="Center"/>
 

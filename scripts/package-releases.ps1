@@ -8,9 +8,9 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.2.2",
+    [string]$Version = "1.3.0",
     [string[]]$Architectures = @("win-x64", "win-arm64", "win-x86"),
-    [string]$ReleaseNotes = "- Comprehensive IPC authentication and Parent PID validation preventing named pipe hijacking`n- Hardened ElevatedOperationExecutor against command injection and service tampering`n- Strict mandatory SHA-256 update package verification with release checksum fallback`n- Protected critical Windows directories, user anchors, and core system registry subtrees"
+    [string]$ReleaseNotes = "- Deep System Scan category selection: inspect individual categories or full system`n- Fluent Windows 11 Selection Toolbar pattern across Deep Scan and System Cleaner`n- Non-blocking background deletion engine with real-time progress reporting and acrylic scrim`n- Redesigned Fluent dark completion dialog with symmetrical statistics cards`n- Settings expander responsive layout fix preventing badge clipping"
 )
 
 $ErrorActionPreference = "Stop"

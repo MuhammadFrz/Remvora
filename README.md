@@ -13,7 +13,7 @@
   <a href="#"><img src="https://img.shields.io/badge/platform-Windows%2011%20%7C%20Windows%2010%20x64%20%7C%20ARM64-blue.svg" alt="Platform" /></a>
   <a href="#"><img src="https://img.shields.io/badge/.NET-10.0%20LTS-purple.svg" alt="Target Framework" /></a>
   <a href="#"><img src="https://img.shields.io/badge/UI-WinUI%203%20(Windows%20App%20SDK)-0078D4.svg" alt="UI Framework" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-117%20passed%20%7C%200%20failed-brightgreen.svg" alt="Tests" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-135%20passed%20%7C%200%20failed-brightgreen.svg" alt="Tests" /></a>
   <a href="#"><img src="https://img.shields.io/badge/architecture-Clean%20Architecture%20%2B%20Privilege%20Separation-orange.svg" alt="Architecture" /></a>
 </p>
 

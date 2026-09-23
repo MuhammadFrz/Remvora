@@ -236,12 +236,59 @@ public sealed partial class CleanerViewModel : ObservableObject
         }
     }
 
+    private bool _isSyncingSelection;
+
+    partial void OnIsAllJunkSelectedChanged(bool? value)
+    {
+        if (_isSyncingSelection || value is null) return;
+        _isSyncingSelection = true;
+        try
+        {
+            foreach (var grp in JunkGroups)
+            {
+                grp.IsSelected = value.Value;
+            }
+        }
+        finally
+        {
+            _isSyncingSelection = false;
+        }
+        UpdateJunkTotals();
+    }
+
+    partial void OnIsAllPrivacySelectedChanged(bool? value)
+    {
+        if (_isSyncingSelection || value is null) return;
+        _isSyncingSelection = true;
+        try
+        {
+            foreach (var item in PrivacyItems)
+            {
+                item.IsSelected = value.Value;
+            }
+        }
+        finally
+        {
+            _isSyncingSelection = false;
+        }
+        UpdatePrivacyTotals();
+    }
+
     [RelayCommand]
     public void SelectAllJunk()
     {
-        foreach (var grp in JunkGroups)
+        _isSyncingSelection = true;
+        try
         {
-            grp.IsSelected = true;
+            foreach (var grp in JunkGroups)
+            {
+                grp.IsSelected = true;
+            }
+            IsAllJunkSelected = true;
+        }
+        finally
+        {
+            _isSyncingSelection = false;
         }
         UpdateJunkTotals();
     }
@@ -249,9 +296,18 @@ public sealed partial class CleanerViewModel : ObservableObject
     [RelayCommand]
     public void DeselectAllJunk()
     {
-        foreach (var grp in JunkGroups)
+        _isSyncingSelection = true;
+        try
         {
-            grp.IsSelected = false;
+            foreach (var grp in JunkGroups)
+            {
+                grp.IsSelected = false;
+            }
+            IsAllJunkSelected = false;
+        }
+        finally
+        {
+            _isSyncingSelection = false;
         }
         UpdateJunkTotals();
     }
@@ -260,19 +316,25 @@ public sealed partial class CleanerViewModel : ObservableObject
     public void ToggleSelectAllJunk()
     {
         bool targetState = IsAllJunkSelected != true;
-        foreach (var grp in JunkGroups)
-        {
-            grp.IsSelected = targetState;
-        }
-        UpdateJunkTotals();
+        if (targetState) SelectAllJunk();
+        else DeselectAllJunk();
     }
 
     [RelayCommand]
     public void SelectAllPrivacy()
     {
-        foreach (var item in PrivacyItems)
+        _isSyncingSelection = true;
+        try
         {
-            item.IsSelected = true;
+            foreach (var item in PrivacyItems)
+            {
+                item.IsSelected = true;
+            }
+            IsAllPrivacySelected = true;
+        }
+        finally
+        {
+            _isSyncingSelection = false;
         }
         UpdatePrivacyTotals();
     }
@@ -280,9 +342,18 @@ public sealed partial class CleanerViewModel : ObservableObject
     [RelayCommand]
     public void DeselectAllPrivacy()
     {
-        foreach (var item in PrivacyItems)
+        _isSyncingSelection = true;
+        try
         {
-            item.IsSelected = false;
+            foreach (var item in PrivacyItems)
+            {
+                item.IsSelected = false;
+            }
+            IsAllPrivacySelected = false;
+        }
+        finally
+        {
+            _isSyncingSelection = false;
         }
         UpdatePrivacyTotals();
     }
@@ -291,11 +362,8 @@ public sealed partial class CleanerViewModel : ObservableObject
     public void ToggleSelectAllPrivacy()
     {
         bool targetState = IsAllPrivacySelected != true;
-        foreach (var item in PrivacyItems)
-        {
-            item.IsSelected = targetState;
-        }
-        UpdatePrivacyTotals();
+        if (targetState) SelectAllPrivacy();
+        else DeselectAllPrivacy();
     }
 
     private void UpdateJunkTotals()
@@ -309,17 +377,28 @@ public sealed partial class CleanerViewModel : ObservableObject
         TotalJunkFilesText = $"{selectedFiles:N0} files selected ({selectedCount} of {totalCount} categories)";
         JunkSelectionSummaryText = $"({selectedCount} of {totalCount} categories • {TotalJunkSizeText})";
 
-        if (totalCount == 0 || selectedCount == 0)
+        if (!_isSyncingSelection)
         {
-            IsAllJunkSelected = false;
-        }
-        else if (selectedCount == totalCount)
-        {
-            IsAllJunkSelected = true;
-        }
-        else
-        {
-            IsAllJunkSelected = null;
+            _isSyncingSelection = true;
+            try
+            {
+                if (totalCount == 0 || selectedCount == 0)
+                {
+                    IsAllJunkSelected = false;
+                }
+                else if (selectedCount == totalCount)
+                {
+                    IsAllJunkSelected = true;
+                }
+                else
+                {
+                    IsAllJunkSelected = null;
+                }
+            }
+            finally
+            {
+                _isSyncingSelection = false;
+            }
         }
     }
 
@@ -332,17 +411,28 @@ public sealed partial class CleanerViewModel : ObservableObject
         TotalPrivacyTracesText = $"{selectedTraces:N0} traces selected ({selectedCount} of {totalCount} categories)";
         PrivacySelectionSummaryText = $"({selectedCount} of {totalCount} trace categories • {selectedTraces:N0} traces)";
 
-        if (totalCount == 0 || selectedCount == 0)
+        if (!_isSyncingSelection)
         {
-            IsAllPrivacySelected = false;
-        }
-        else if (selectedCount == totalCount)
-        {
-            IsAllPrivacySelected = true;
-        }
-        else
-        {
-            IsAllPrivacySelected = null;
+            _isSyncingSelection = true;
+            try
+            {
+                if (totalCount == 0 || selectedCount == 0)
+                {
+                    IsAllPrivacySelected = false;
+                }
+                else if (selectedCount == totalCount)
+                {
+                    IsAllPrivacySelected = true;
+                }
+                else
+                {
+                    IsAllPrivacySelected = null;
+                }
+            }
+            finally
+            {
+                _isSyncingSelection = false;
+            }
         }
     }
 

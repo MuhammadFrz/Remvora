@@ -194,17 +194,17 @@
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Stretch">
                             <Expander.Header>
-                                <Grid Width="700">
+                                <Grid HorizontalAlignment="Stretch" Margin="0,0,16,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="0,0,16,0">
                                         <FontIcon Glyph="&#xE72D;" Foreground="#94A3B8"/>
-                                        <TextBlock Text="GitHub Private Repository &amp; Token Configuration" FontWeight="SemiBold"/>
+                                        <TextBlock Text="GitHub Private Repository &amp; Token Configuration" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
-                                    <Border Grid.Column="1" Background="#1E293B" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind ViewModel.GitHubTokenStatus, Mode=OneWay}" FontSize="11" Foreground="#94A3B8"/>
+                                    <Border Grid.Column="1" Background="#1E293B" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind ViewModel.GitHubTokenStatus, Mode=OneWay}" FontSize="11" Foreground="#94A3B8" FontWeight="Medium"/>
                                     </Border>
                                 </Grid>
                             </Expander.Header>

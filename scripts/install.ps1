@@ -143,7 +143,7 @@ $displayIcon = if (Test-Path (Join-Path $appInstallDir "Assets\AppIcon.ico")) {
     $primaryExe
 }
 
-$detectedVersion = "1.2.2"
+$detectedVersion = "1.3.0"
 if (Test-Path $primaryExe) {
     try {
         $fileVer = (Get-Item $primaryExe).VersionInfo.ProductVersion

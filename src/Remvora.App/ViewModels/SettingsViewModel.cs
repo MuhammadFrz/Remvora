@@ -253,7 +253,7 @@ public sealed partial class SettingsViewModel : ObservableObject
                 File.Delete(tokenFile);
             }
             HasConfiguredToken = false;
-            GitHubTokenStatus = "Public access only";
+            GitHubTokenStatus = "Public Access";
             StatusMessage = "GitHub token removed.";
         }
         catch (Exception ex)
@@ -279,7 +279,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(envToken))
         {
             HasConfiguredToken = true;
-            GitHubTokenStatus = "Environment variable (Active)";
+            GitHubTokenStatus = "Active (Env)";
             return;
         }
 
@@ -288,12 +288,12 @@ public sealed partial class SettingsViewModel : ObservableObject
             File.Exists(Path.Combine(userProfile, ".remvora", "token.txt")))
         {
             HasConfiguredToken = true;
-            GitHubTokenStatus = "Discovered in local config";
+            GitHubTokenStatus = "Active (Local .env)";
             return;
         }
 
         HasConfiguredToken = false;
-        GitHubTokenStatus = "Public access only";
+        GitHubTokenStatus = "Public Access";
     }
 
     private static string GetAppVersion()
@@ -312,7 +312,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             return $"{ver.Major}.{ver.Minor}.{ver.Build}";
         }
 
-        return "1.2.2";
+        return "1.3.0";
     }
 
     private static string FormatBytes(long bytes)

@@ -48,6 +48,16 @@ public sealed class WindowsSystemScanServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ScanSystemAsync_WithSpecificCategories_ReturnsOnlySelectedGroups()
+    {
+        var groups = await _scanService.ScanSystemAsync([ScanCategory.OrphanedLeftovers]);
+
+        groups.Should().NotBeNull();
+        groups.Should().HaveCount(1);
+        groups[0].Category.Should().Be(ScanCategory.OrphanedLeftovers);
+    }
+
+    [Fact]
     public async Task CleanSelectedItemsAsync_RemovesValidFiles_And_RecordsStats()
     {
         var dummyFile = Path.Combine(_testRoot, "test_cache.tmp");

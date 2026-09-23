@@ -40,6 +40,8 @@ public sealed partial class ScanItemViewModel : ObservableObject
 
 public sealed partial class ScanGroupViewModel : ObservableObject
 {
+    private bool _isUpdatingSelection;
+
     public ScanCategory Category { get; }
     public string Title { get; }
     public string Description { get; }
@@ -51,7 +53,7 @@ public sealed partial class ScanGroupViewModel : ObservableObject
     public partial bool IsExpanded { get; set; } = true;
 
     [ObservableProperty]
-    public partial bool IsAllSelected { get; set; } = true;
+    public partial bool? IsAllSelected { get; set; } = true;
 
     public int TotalCount => Items.Count;
     public string FormattedTotalSize => ScanItem.FormatBytes(Items.Sum(i => i.SizeBytes));
@@ -71,6 +73,26 @@ public sealed partial class ScanGroupViewModel : ObservableObject
 
     public event Action? GroupSelectionChanged;
 
+    partial void OnIsAllSelectedChanged(bool? value)
+    {
+        if (_isUpdatingSelection || value is null) return;
+        _isUpdatingSelection = true;
+        try
+        {
+            foreach (var item in Items)
+            {
+                item.IsSelected = value.Value;
+            }
+        }
+        finally
+        {
+            _isUpdatingSelection = false;
+        }
+
+        UpdateGroupMetrics();
+        GroupSelectionChanged?.Invoke();
+    }
+
     public ScanGroupViewModel(ScanGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -83,28 +105,63 @@ public sealed partial class ScanGroupViewModel : ObservableObject
             var vm = new ScanItemViewModel(item);
             vm.SelectionChanged += () =>
             {
-                OnPropertyChanged(nameof(SelectedCount));
-                OnPropertyChanged(nameof(SelectedBytes));
-                OnPropertyChanged(nameof(FormattedSelectedSize));
-                IsAllSelected = Items.Count > 0 && Items.All(i => i.IsSelected);
+                UpdateGroupMetrics();
                 GroupSelectionChanged?.Invoke();
             };
             Items.Add(vm);
         }
+        UpdateGroupMetrics();
+    }
+
+    public void UpdateGroupMetrics()
+    {
+        OnPropertyChanged(nameof(SelectedCount));
+        OnPropertyChanged(nameof(SelectedBytes));
+        OnPropertyChanged(nameof(FormattedSelectedSize));
+
+        if (_isUpdatingSelection) return;
+        _isUpdatingSelection = true;
+        try
+        {
+            int selected = Items.Count(i => i.IsSelected);
+            if (Items.Count == 0 || selected == 0)
+                IsAllSelected = false;
+            else if (selected == Items.Count)
+                IsAllSelected = true;
+            else
+                IsAllSelected = null;
+        }
+        finally
+        {
+            _isUpdatingSelection = false;
+        }
+    }
+
+    public void SetSelection(bool isSelected)
+    {
+        _isUpdatingSelection = true;
+        try
+        {
+            foreach (var item in Items)
+            {
+                item.IsSelected = isSelected;
+            }
+            IsAllSelected = isSelected;
+        }
+        finally
+        {
+            _isUpdatingSelection = false;
+        }
+        OnPropertyChanged(nameof(SelectedCount));
+        OnPropertyChanged(nameof(SelectedBytes));
+        OnPropertyChanged(nameof(FormattedSelectedSize));
     }
 
     [RelayCommand]
     public void ToggleGroupSelection()
     {
-        bool newState = !IsAllSelected;
-        foreach (var item in Items)
-        {
-            item.IsSelected = newState;
-        }
-        IsAllSelected = newState;
-        OnPropertyChanged(nameof(SelectedCount));
-        OnPropertyChanged(nameof(SelectedBytes));
-        OnPropertyChanged(nameof(FormattedSelectedSize));
+        bool targetState = IsAllSelected != true;
+        SetSelection(targetState);
         GroupSelectionChanged?.Invoke();
     }
 }
@@ -115,6 +172,68 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
     private readonly ICleaningStatsRepository _statsRepository;
     private readonly ILogger<ScanViewModel> _logger;
     private CancellationTokenSource? _scanCts;
+    private bool _isMasterSyncingSelection;
+
+    // Scan Category Pre-Selection Options
+    [ObservableProperty]
+    public partial bool IsScanRedundantSelected { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool IsScanAppCacheSelected { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool IsScanOrphansSelected { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool IsScanIssuesSelected { get; set; } = true;
+
+    [ObservableProperty]
+    public partial string ScanButtonText { get; set; } = "Start Full System Scan";
+
+    [ObservableProperty]
+    public partial bool CanStartScan { get; set; } = true;
+
+    partial void OnIsScanRedundantSelectedChanged(bool value) => UpdateScanTargetOptions();
+    partial void OnIsScanAppCacheSelectedChanged(bool value) => UpdateScanTargetOptions();
+    partial void OnIsScanOrphansSelectedChanged(bool value) => UpdateScanTargetOptions();
+    partial void OnIsScanIssuesSelectedChanged(bool value) => UpdateScanTargetOptions();
+
+    private void UpdateScanTargetOptions()
+    {
+        if (IsScanning)
+        {
+            CanStartScan = false;
+            return;
+        }
+
+        int count = 0;
+        if (IsScanRedundantSelected) count++;
+        if (IsScanAppCacheSelected) count++;
+        if (IsScanOrphansSelected) count++;
+        if (IsScanIssuesSelected) count++;
+
+        CanStartScan = count > 0;
+
+        if (count == 4)
+        {
+            ScanButtonText = "Start Full System Scan";
+        }
+        else if (count == 0)
+        {
+            ScanButtonText = "Select Categories to Scan";
+        }
+        else if (count == 1)
+        {
+            if (IsScanOrphansSelected) ScanButtonText = "Scan Orphaned Leftovers";
+            else if (IsScanRedundantSelected) ScanButtonText = "Scan Redundant Files";
+            else if (IsScanAppCacheSelected) ScanButtonText = "Scan Application Caches";
+            else ScanButtonText = "Scan Damaged Registrations";
+        }
+        else
+        {
+            ScanButtonText = $"Scan Selected Categories ({count})";
+        }
+    }
 
     [ObservableProperty]
     public partial ObservableCollection<ScanGroupViewModel> Groups { get; set; } = [];
@@ -155,6 +274,30 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial bool HasSelectedItems { get; set; }
 
+    [ObservableProperty]
+    public partial bool? IsAllSelected { get; set; } = true;
+
+    [ObservableProperty]
+    public partial string SelectionSummaryText { get; set; } = string.Empty;
+
+    partial void OnIsAllSelectedChanged(bool? value)
+    {
+        if (_isMasterSyncingSelection || value is null) return;
+        _isMasterSyncingSelection = true;
+        try
+        {
+            foreach (var grp in Groups)
+            {
+                grp.SetSelection(value.Value);
+            }
+        }
+        finally
+        {
+            _isMasterSyncingSelection = false;
+        }
+        UpdateMetrics();
+    }
+
     // Cleaning Result Modal Properties
     [ObservableProperty]
     public partial bool IsCleanSummaryOpen { get; set; }
@@ -181,16 +324,25 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task StartScanAsync()
     {
+        if (!CanStartScan) return;
+
         _scanCts?.Dispose();
         _scanCts = new CancellationTokenSource();
         var token = _scanCts.Token;
 
         IsScanning = true;
+        CanStartScan = false;
         HasScanned = false;
         ScanProgressPercent = 0;
         CurrentStepText = "Initializing deep system scan...";
         CurrentTargetText = string.Empty;
         Groups.Clear();
+
+        var selectedCats = new List<ScanCategory>();
+        if (IsScanRedundantSelected) selectedCats.Add(ScanCategory.WindowsRedundant);
+        if (IsScanAppCacheSelected) selectedCats.Add(ScanCategory.AppCache);
+        if (IsScanOrphansSelected) selectedCats.Add(ScanCategory.OrphanedLeftovers);
+        if (IsScanIssuesSelected) selectedCats.Add(ScanCategory.AppIssues);
 
         var progress = new Progress<ScanProgressReport>(report =>
         {
@@ -204,7 +356,7 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
 
         try
         {
-            var rawGroups = await _scanService.ScanSystemAsync(progress, token).ConfigureAwait(true);
+            var rawGroups = await _scanService.ScanSystemAsync(selectedCats, progress, token).ConfigureAwait(true);
 
             Groups.Clear();
             foreach (var g in rawGroups)
@@ -235,6 +387,7 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
         finally
         {
             IsScanning = false;
+            UpdateScanTargetOptions();
         }
     }
 
@@ -275,11 +428,12 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
             CleanResultBytesReclaimedText = ScanItem.FormatBytes(result.BytesReclaimed);
             CleanResultErrors = new ObservableCollection<string>(result.Errors);
 
-            // Remove successfully deleted items from VM groups
+            // In-place update: remove successfully cleaned items from groups
             foreach (var group in Groups)
             {
                 var remaining = group.Items.Where(i => !i.IsSelected).ToList();
                 group.Items = new ObservableCollection<ScanItemViewModel>(remaining);
+                group.UpdateGroupMetrics();
             }
 
             UpdateMetrics();
@@ -303,13 +457,18 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void SelectAll()
     {
-        foreach (var g in Groups)
+        _isMasterSyncingSelection = true;
+        try
         {
-            foreach (var item in g.Items)
+            foreach (var g in Groups)
             {
-                item.IsSelected = true;
+                g.SetSelection(true);
             }
-            g.IsAllSelected = true;
+            IsAllSelected = true;
+        }
+        finally
+        {
+            _isMasterSyncingSelection = false;
         }
         UpdateMetrics();
     }
@@ -317,13 +476,18 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void ClearAll()
     {
-        foreach (var g in Groups)
+        _isMasterSyncingSelection = true;
+        try
         {
-            foreach (var item in g.Items)
+            foreach (var g in Groups)
             {
-                item.IsSelected = false;
+                g.SetSelection(false);
             }
-            g.IsAllSelected = false;
+            IsAllSelected = false;
+        }
+        finally
+        {
+            _isMasterSyncingSelection = false;
         }
         UpdateMetrics();
     }
@@ -336,24 +500,49 @@ public sealed partial class ScanViewModel : ObservableObject, IDisposable
 
     private void UpdateMetrics()
     {
-        int count = 0;
-        long bytes = 0;
-        int totalCount = 0;
-        long totalBytes = 0;
+        int totalFound = 0;
+        long totalFoundBytes = 0;
+        int totalSelected = 0;
+        long totalSelectedBytes = 0;
 
         foreach (var g in Groups)
         {
-            totalCount += g.TotalCount;
-            totalBytes += g.Items.Sum(i => i.SizeBytes);
-            count += g.SelectedCount;
-            bytes += g.SelectedBytes;
+            totalFound += g.TotalCount;
+            totalFoundBytes += g.Items.Sum(i => i.SizeBytes);
+            totalSelected += g.SelectedCount;
+            totalSelectedBytes += g.SelectedBytes;
         }
 
-        TotalFoundCount = totalCount;
-        TotalFoundSizeText = ScanItem.FormatBytes(totalBytes);
-        TotalSelectedCount = count;
-        TotalSelectedSizeText = ScanItem.FormatBytes(bytes);
-        HasSelectedItems = count > 0;
+        TotalFoundCount = totalFound;
+        TotalFoundSizeText = ScanItem.FormatBytes(totalFoundBytes);
+        TotalSelectedCount = totalSelected;
+        TotalSelectedSizeText = ScanItem.FormatBytes(totalSelectedBytes);
+        HasSelectedItems = totalSelected > 0;
+        SelectionSummaryText = $"({totalSelected} of {totalFound} items • {TotalSelectedSizeText})";
+
+        if (!_isMasterSyncingSelection)
+        {
+            _isMasterSyncingSelection = true;
+            try
+            {
+                if (totalFound == 0 || totalSelected == 0)
+                {
+                    IsAllSelected = false;
+                }
+                else if (totalSelected == totalFound)
+                {
+                    IsAllSelected = true;
+                }
+                else
+                {
+                    IsAllSelected = null;
+                }
+            }
+            finally
+            {
+                _isMasterSyncingSelection = false;
+            }
+        }
     }
 
     [LoggerMessage(EventId = 3001, Level = LogLevel.Error, Message = "Deep system scan error: {ErrorMessage}")]

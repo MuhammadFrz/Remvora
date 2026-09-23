@@ -48,7 +48,7 @@
                     Spacing="24"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    MaxWidth="640"
+                    MaxWidth="760"
                     Margin="0,40,0,40"
                     Visibility="{x:Bind ViewModel.IsScanning, Mode=OneWay, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
                     
@@ -83,8 +83,10 @@
                             <Grid ColumnDefinitions="Auto,*">
                                 <CheckBox
                                     IsChecked="{x:Bind ViewModel.IsScanRedundantSelected, Mode=TwoWay}"
+                                    MinWidth="0"
+                                    Padding="0"
                                     VerticalAlignment="Top"
-                                    Margin="0,0,10,0"/>
+                                    Margin="0,2,12,0"/>
                                 <StackPanel Grid.Column="1" Spacing="4">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon Glyph="&#xE770;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
@@ -100,8 +102,10 @@
                             <Grid ColumnDefinitions="Auto,*">
                                 <CheckBox
                                     IsChecked="{x:Bind ViewModel.IsScanAppCacheSelected, Mode=TwoWay}"
+                                    MinWidth="0"
+                                    Padding="0"
                                     VerticalAlignment="Top"
-                                    Margin="0,0,10,0"/>
+                                    Margin="0,2,12,0"/>
                                 <StackPanel Grid.Column="1" Spacing="4">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon Glyph="&#xE81E;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
@@ -117,8 +121,10 @@
                             <Grid ColumnDefinitions="Auto,*">
                                 <CheckBox
                                     IsChecked="{x:Bind ViewModel.IsScanOrphansSelected, Mode=TwoWay}"
+                                    MinWidth="0"
+                                    Padding="0"
                                     VerticalAlignment="Top"
-                                    Margin="0,0,10,0"/>
+                                    Margin="0,2,12,0"/>
                                 <StackPanel Grid.Column="1" Spacing="4">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon Glyph="&#xE74D;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
@@ -134,8 +140,10 @@
                             <Grid ColumnDefinitions="Auto,*">
                                 <CheckBox
                                     IsChecked="{x:Bind ViewModel.IsScanIssuesSelected, Mode=TwoWay}"
+                                    MinWidth="0"
+                                    Padding="0"
                                     VerticalAlignment="Top"
-                                    Margin="0,0,10,0"/>
+                                    Margin="0,2,12,0"/>
                                 <StackPanel Grid.Column="1" Spacing="4">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon Glyph="&#xE783;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
@@ -249,50 +257,39 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Selection Toolbar Pattern (Rule 4) -->
+                <!-- Selection Toolbar -->
                 <Grid Grid.Row="1" Margin="4,0,4,12">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <CheckBox
-                        Content="Select all"
-                        IsChecked="{x:Bind ViewModel.IsAllSelected, Mode=TwoWay}"
-                        FontWeight="SemiBold"
-                        VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <CheckBox
+                            Content="Select all"
+                            IsChecked="{x:Bind ViewModel.IsAllSelected, Mode=TwoWay}"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center"/>
 
-                    <TextBlock
-                        Grid.Column="1"
-                        Text="{x:Bind ViewModel.SelectionSummaryText, Mode=OneWay}"
-                        Style="{ThemeResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        VerticalAlignment="Center"
-                        Margin="8,0,0,0"/>
-
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <Button
-                            Command="{x:Bind ViewModel.ClearAllCommand}"
-                            Style="{ThemeResource SubtleButtonStyle}"
-                            Padding="8,5"
-                            VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE894;" FontSize="12"/>
-                                <TextBlock Text="Clear selection" Style="{ThemeResource CaptionTextBlockStyle}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button
-                            Command="{x:Bind ViewModel.CleanSelectedCommand}"
-                            IsEnabled="{x:Bind ViewModel.HasSelectedItems, Mode=OneWay}"
-                            Style="{ThemeResource AccentButtonStyle}"
-                            Padding="18,8">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE74D;"/>
-                                <TextBlock Text="Clean Selected Issues" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Button>
+                        <TextBlock
+                            Text="{x:Bind ViewModel.SelectionSummaryText, Mode=OneWay}"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            VerticalAlignment="Center"/>
                     </StackPanel>
+
+                    <Button
+                        Grid.Column="1"
+                        Command="{x:Bind ViewModel.CleanSelectedCommand}"
+                        IsEnabled="{x:Bind ViewModel.HasSelectedItems, Mode=OneWay}"
+                        Style="{ThemeResource AccentButtonStyle}"
+                        Padding="18,8"
+                        VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE74D;"/>
+                            <TextBlock Text="Clean Selected Issues" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Button>
                 </Grid>
 
                 <!-- Category Groups List -->
@@ -320,6 +317,8 @@
                                             <!-- Group Checkbox -->
                                             <CheckBox
                                                 IsChecked="{x:Bind IsAllSelected, Mode=TwoWay}"
+                                                MinWidth="0"
+                                                Padding="0"
                                                 VerticalAlignment="Center"
                                                 Margin="0,0,12,0"/>
 
@@ -368,16 +367,32 @@
 
                                                         <CheckBox
                                                             IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
+                                                            MinWidth="0"
+                                                            Padding="0"
                                                             VerticalAlignment="Center"
                                                             Margin="0,0,12,0"/>
 
-                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
                                                             <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{x:Bind TargetPath}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                            <HyperlinkButton
+                                                                Command="{x:Bind OpenLocationCommand}"
+                                                                ToolTipService.ToolTip="Open directory in File Explorer"
+                                                                Padding="0" Margin="0" MinWidth="0" MinHeight="0"
+                                                                HorizontalAlignment="Left"
+                                                                HorizontalContentAlignment="Left">
+                                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                                    <FontIcon Glyph="&#xED25;" FontSize="11" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center"/>
+                                                                    <TextBlock
+                                                                        Text="{x:Bind TargetPath}"
+                                                                        Style="{ThemeResource CaptionTextBlockStyle}"
+                                                                        Foreground="{ThemeResource AccentFillColorDefaultBrush}"
+                                                                        TextTrimming="CharacterEllipsis"/>
+                                                                </StackPanel>
+                                                            </HyperlinkButton>
                                                             <TextBlock Text="{x:Bind Description}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
 
-                                                        <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+                                                        <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="8,4" VerticalAlignment="Center" Margin="12,0,0,0">
                                                             <TextBlock Text="{x:Bind FormattedSize}" FontWeight="SemiBold" Style="{ThemeResource CaptionTextBlockStyle}"/>
                                                         </Border>
                                                     </Grid>

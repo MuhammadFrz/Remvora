@@ -16,11 +16,15 @@
 - **Dynamic Action Button**: Scan button updates reactively based on selection (e.g. `"Scan Orphaned Leftovers"`, `"Scan Selected Categories (2)"`, `"Start Full System Scan"`).
 - **Scanner Engine Optimization**: `ISystemScanService.ScanSystemAsync` conditionally runs only requested modules in the background, accelerating scan completion times.
 
-### ☑️ Fluent Selection Toolbar Pattern (Rule 4)
+### 📁 Clickable Directories in Scan Results
+- **Direct File Explorer Navigation**: Click any scanned target path in the results list to instantly open Windows File Explorer focused on that directory or file.
+- **Interactive Visual Feedback**: Styled as a clean `HyperlinkButton` with an open-external glyph (`\uED25`), accent hover styling, and informational tooltip.
+
+### ☑️ Unified Selection Toolbar Pattern
 - **Fixed CheckBox Synchronization**: Resolved a two-way binding conflict where CheckBox clicks were accidentally inverted by redundant `Command` handlers, restoring instant group and item selection.
-- **Selection Toolbar**: Implemented the standard Windows 11 Fluent selection pattern on both Deep Scan and System Cleaner:
-  - **Left**: Master tri-state `CheckBox` with `"Select all"` and live summary `(X of Y items • Size)`.
-  - **Right**: Clean subtle `[ Clear selection]` button (`\uE894`) and primary action button.
+- **Clean Streamlined Toolbar**: Consolidated selection on Deep Scan and System Cleaner into a unified master `CheckBox` (`"Select all"`) and adjacent live summary `(X of Y items • Size)`.
+- **Eliminated Redundant Controls**: Removed the duplicate `"Clear selection"` button, keeping all multi-selection controls intuitive and removing awkward empty spacing across the toolbar.
+- **Fixed Empty Space Visual Bug**: Applied explicit `MinWidth="0"` and `Padding="0"` to all contentless CheckBoxes in category cards and result items, preventing WinUI 3's default 120px placeholder margin from squishing content and truncating card text.
 
 ### ⚡ Non-Blocking Deletion & Live Progress Overlays (Rule 3)
 - **Zero UI Dispatcher Freezing**: All file system deletions and directory purges now execute strictly inside background worker tasks (`Task.Run`), leaving the WinUI 3 message loop fluid at 60fps.

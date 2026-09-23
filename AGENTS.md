@@ -59,8 +59,8 @@
 
 * **Native WinUI 3 Controls**: Use standard Windows 11 controls. **Never create fake controls** (e.g. styling standard buttons with checkbox icons `\uE73A` and `\uE739` next to real checkboxes).
 * **Selection Toolbar Pattern**:
-  * **Left Side**: Single master `CheckBox` with label `"Select all"` and concise summary `(X of Y categories • Size)`.
-  * **Right Side**: Clean subtle button `[ Clear selection]` with the standard Windows Dismiss glyph (`\uE894`).
+  * Single master `CheckBox` with label `"Select all"` and adjacent concise summary `(X of Y items • Size)`.
+  * Do not add redundant `"Clear selection"` buttons; toggling the master `CheckBox` handles both select-all and deselect-all directly without empty space or duplicate controls.
 * **High Contrast & Dark Mode**:
   * Use `HighContrastCardStrokeBrush` for visible card borders.
   * Avoid pure `#000000` or `#FFFFFF` contrast harshness; use tailored dark mode tones (e.g. `#181A22`, `#282C38`, `#38BDF8`).

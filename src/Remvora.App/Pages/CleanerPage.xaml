@@ -122,13 +122,7 @@
                     </Border>
 
                     <!-- Junk Selection Toolbar -->
-                    <Grid Grid.Row="1" Margin="4,0,4,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="4,0,4,10" VerticalAlignment="Center">
                         <CheckBox
                             Content="Select all"
                             IsChecked="{x:Bind ViewModel.IsAllJunkSelected, Mode=TwoWay}"
@@ -136,25 +130,11 @@
                             VerticalAlignment="Center"/>
 
                         <TextBlock
-                            Grid.Column="1"
                             Text="{x:Bind ViewModel.JunkSelectionSummaryText, Mode=OneWay}"
                             Style="{ThemeResource CaptionTextBlockStyle}"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            VerticalAlignment="Center"
-                            Margin="8,0,0,0"/>
-
-                        <Button
-                            Grid.Column="2"
-                            Command="{x:Bind ViewModel.DeselectAllJunkCommand}"
-                            Style="{ThemeResource SubtleButtonStyle}"
-                            Padding="8,4"
-                            VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE894;" FontSize="12"/>
-                                <TextBlock Text="Clear selection" Style="{ThemeResource CaptionTextBlockStyle}"/>
-                            </StackPanel>
-                        </Button>
-                    </Grid>
+                            VerticalAlignment="Center"/>
+                    </StackPanel>
 
                     <!-- Junk Categories List (Bug 6: High Contrast Border) -->
                     <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8">
@@ -169,7 +149,7 @@
                                             <ColumnDefinition Width="120"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}"/>
+                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" MinWidth="0" Padding="0" VerticalAlignment="Center"/>
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                             <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold"/>
@@ -219,13 +199,7 @@
                     </Border>
 
                     <!-- Privacy Selection Toolbar -->
-                    <Grid Grid.Row="1" Margin="4,0,4,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="4,0,4,10" VerticalAlignment="Center">
                         <CheckBox
                             Content="Select all"
                             IsChecked="{x:Bind ViewModel.IsAllPrivacySelected, Mode=TwoWay}"
@@ -233,25 +207,11 @@
                             VerticalAlignment="Center"/>
 
                         <TextBlock
-                            Grid.Column="1"
                             Text="{x:Bind ViewModel.PrivacySelectionSummaryText, Mode=OneWay}"
                             Style="{ThemeResource CaptionTextBlockStyle}"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            VerticalAlignment="Center"
-                            Margin="8,0,0,0"/>
-
-                        <Button
-                            Grid.Column="2"
-                            Command="{x:Bind ViewModel.DeselectAllPrivacyCommand}"
-                            Style="{ThemeResource SubtleButtonStyle}"
-                            Padding="8,4"
-                            VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE894;" FontSize="12"/>
-                                <TextBlock Text="Clear selection" Style="{ThemeResource CaptionTextBlockStyle}"/>
-                            </StackPanel>
-                        </Button>
-                    </Grid>
+                            VerticalAlignment="Center"/>
+                    </StackPanel>
 
                     <!-- Privacy Items List (Bug 6: High Contrast Border) -->
                     <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource HighContrastCardStrokeBrush}" BorderThickness="1.5" CornerRadius="8">
@@ -265,7 +225,7 @@
                                             <ColumnDefinition Width="140"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}"/>
+                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" MinWidth="0" Padding="0" VerticalAlignment="Center"/>
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                             <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold"/>

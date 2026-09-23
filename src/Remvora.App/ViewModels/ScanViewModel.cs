@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -29,6 +31,53 @@ public sealed partial class ScanItemViewModel : ObservableObject
     {
         Model.IsSelected = value;
         SelectionChanged?.Invoke();
+    }
+
+    [RelayCommand]
+    public void OpenLocation()
+    {
+        if (string.IsNullOrWhiteSpace(TargetPath)) return;
+
+        try
+        {
+            var resolvedPath = Environment.ExpandEnvironmentVariables(TargetPath);
+
+            if (Directory.Exists(resolvedPath))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"\"{resolvedPath}\"",
+                    UseShellExecute = true
+                });
+            }
+            else if (File.Exists(resolvedPath))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{resolvedPath}\"",
+                    UseShellExecute = true
+                });
+            }
+            else
+            {
+                var parent = Path.GetDirectoryName(resolvedPath);
+                if (!string.IsNullOrWhiteSpace(parent) && Directory.Exists(parent))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"\"{parent}\"",
+                        UseShellExecute = true
+                    });
+                }
+            }
+        }
+        catch
+        {
+            // Silently swallow process launch errors
+        }
     }
 
     public ScanItemViewModel(ScanItem model)

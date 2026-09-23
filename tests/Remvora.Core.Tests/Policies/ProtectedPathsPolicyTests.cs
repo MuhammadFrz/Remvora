@@ -33,6 +33,10 @@ public sealed class ProtectedPathsPolicyTests
     [InlineData(@"C:\Users\Username\AppData\Local\VendorApp")]
     [InlineData(@"C:\Program Files (x86)\VendorApp")]
     [InlineData(@"D:\CustomGames\GameName")]
+    [InlineData(@"C:\Windows\Temp")]
+    [InlineData(@"C:\Windows\Temp\session.tmp")]
+    [InlineData(@"C:\Windows\SoftwareDistribution\Download")]
+    [InlineData(@"C:\Windows\SoftwareDistribution\Download\patch.cab")]
     public void IsPathProtected_ForLegitimateAppPaths_ReturnsFalse(string path)
     {
         var isProtected = _policy.IsPathProtected(path, out var reason);

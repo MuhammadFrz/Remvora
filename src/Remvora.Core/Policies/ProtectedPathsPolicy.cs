@@ -21,6 +21,8 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
     public static bool IsProtected(string? rawPath) => Default.IsPathProtected(rawPath, out _);
 
     private readonly HashSet<string> _exactProtectedPaths = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string> _criticalSystemPrefixes = [];
+    private readonly List<string> _approvedCleanupRoots = [];
     private readonly List<string> _protectedPathPrefixes = [];
     private readonly HashSet<string> _exactProtectedRegistryKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _protectedRegistryPrefixes = [];
@@ -36,12 +38,17 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         var systemRoot = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         if (!string.IsNullOrWhiteSpace(systemRoot))
         {
+            _exactProtectedPaths.Add(CanonicalizePath(systemRoot));
+            AddCriticalPrefixProtection(Path.Combine(systemRoot, "System32"), "Windows core System32 directory");
+            AddCriticalPrefixProtection(Path.Combine(systemRoot, "SysWOW64"), "Windows 32-bit SysWOW64 subsystem");
+            AddCriticalPrefixProtection(Path.Combine(systemRoot, "WinSxS"), "Windows side-by-side component store");
+            AddCriticalPrefixProtection(Path.Combine(systemRoot, "SystemResources"), "Windows system resources");
+            AddCriticalPrefixProtection(Path.Combine(systemRoot, "Boot"), "Windows boot configuration");
             AddPrefixProtection(systemRoot, "Windows operating system root directory");
-            AddPrefixProtection(Path.Combine(systemRoot, "System32"), "Windows core System32 directory");
-            AddPrefixProtection(Path.Combine(systemRoot, "SysWOW64"), "Windows 32-bit SysWOW64 subsystem");
-            AddPrefixProtection(Path.Combine(systemRoot, "WinSxS"), "Windows side-by-side component store");
-            AddPrefixProtection(Path.Combine(systemRoot, "SystemResources"), "Windows system resources");
-            AddPrefixProtection(Path.Combine(systemRoot, "Boot"), "Windows boot configuration");
+
+            AddApprovedCleanupRoot(Path.Combine(systemRoot, "Temp"));
+            AddApprovedCleanupRoot(Path.Combine(systemRoot, "SoftwareDistribution", "Download"));
+            AddApprovedCleanupRoot(Path.Combine(systemRoot, "SoftwareDistribution", "DeliveryOptimization"));
         }
 
         var systemDrive = Path.GetPathRoot(systemRoot) ?? @"C:\";
@@ -49,32 +56,32 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         _exactProtectedPaths.Add(systemDrive);
         AddExactProtection(Path.Combine(systemDrive, "bootmgr"), "System boot manager");
         AddExactProtection(Path.Combine(systemDrive, "BOOTNXT"), "System bootloader");
-        AddPrefixProtection(Path.Combine(systemDrive, "Boot"), "System boot directory");
-        AddPrefixProtection(Path.Combine(systemDrive, "Recovery"), "Windows recovery environment");
-        AddPrefixProtection(Path.Combine(systemDrive, "$Recycle.Bin"), "Windows recycle bin root");
+        AddCriticalPrefixProtection(Path.Combine(systemDrive, "Boot"), "System boot directory");
+        AddCriticalPrefixProtection(Path.Combine(systemDrive, "Recovery"), "Windows recovery environment");
+        AddCriticalPrefixProtection(Path.Combine(systemDrive, "$Recycle.Bin"), "Windows recycle bin root");
 
         var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         if (!string.IsNullOrWhiteSpace(programData))
         {
             AddExactProtection(programData, "Common ProgramData root directory");
             AddExactProtection(Path.Combine(programData, "Microsoft"), "Microsoft shared program data root");
-            AddPrefixProtection(Path.Combine(programData, "Microsoft", "Windows"), "Windows system program data");
-            AddPrefixProtection(Path.Combine(programData, "Microsoft", "Crypto"), "System cryptographic keys");
+            AddCriticalPrefixProtection(Path.Combine(programData, "Microsoft", "Windows"), "Windows system program data");
+            AddCriticalPrefixProtection(Path.Combine(programData, "Microsoft", "Crypto"), "System cryptographic keys");
         }
 
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         if (!string.IsNullOrWhiteSpace(programFiles))
         {
             AddExactProtection(programFiles, "Program Files root folder");
-            AddPrefixProtection(Path.Combine(programFiles, "Windows Defender"), "Windows Defender anti-malware");
-            AddPrefixProtection(Path.Combine(programFiles, "WindowsApps"), "Windows Apps system repository");
+            AddCriticalPrefixProtection(Path.Combine(programFiles, "Windows Defender"), "Windows Defender anti-malware");
+            AddCriticalPrefixProtection(Path.Combine(programFiles, "WindowsApps"), "Windows Apps system repository");
         }
 
         var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
         if (!string.IsNullOrWhiteSpace(programFilesX86))
         {
             AddExactProtection(programFilesX86, "Program Files (x86) root folder");
-            AddPrefixProtection(Path.Combine(programFilesX86, "Windows Defender"), "Windows Defender anti-malware");
+            AddCriticalPrefixProtection(Path.Combine(programFilesX86, "Windows Defender"), "Windows Defender anti-malware");
         }
 
         // Protect user profile and personal anchors against full-directory deletion
@@ -92,6 +99,14 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         {
             AddExactProtection(localApp, "User Local AppData root");
             AddExactProtection(Path.Combine(localApp, "Microsoft"), "Microsoft local application root");
+            AddApprovedCleanupRoot(Path.Combine(localApp, "Microsoft", "Windows", "WER"));
+            AddApprovedCleanupRoot(Path.Combine(localApp, "CrashDumps"));
+        }
+
+        var tempPath = Path.GetTempPath();
+        if (!string.IsNullOrWhiteSpace(tempPath))
+        {
+            AddApprovedCleanupRoot(tempPath);
         }
 
         var roamingApp = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -103,7 +118,7 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
 
         if (!string.IsNullOrWhiteSpace(remvoraInstallPath))
         {
-            AddPrefixProtection(remvoraInstallPath, "Remvora application binaries");
+            AddCriticalPrefixProtection(remvoraInstallPath, "Remvora application binaries");
         }
     }
 
@@ -166,6 +181,16 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
         _exactProtectedPaths.Add(CanonicalizePath(path));
     }
 
+    private void AddCriticalPrefixProtection(string prefix, string reason)
+    {
+        _criticalSystemPrefixes.Add(CanonicalizePath(prefix));
+    }
+
+    private void AddApprovedCleanupRoot(string path)
+    {
+        _approvedCleanupRoots.Add(CanonicalizePath(path));
+    }
+
     private void AddPrefixProtection(string prefix, string reason)
     {
         _protectedPathPrefixes.Add(CanonicalizePath(prefix));
@@ -201,12 +226,35 @@ public sealed class ProtectedPathsPolicy : IProtectedPathsPolicy
             return true;
         }
 
+        // 1. Critical system anchors and boot files are ALWAYS protected unconditionally
         if (_exactProtectedPaths.Contains(canonical))
         {
             reason = "Target matches a critical Windows system path exactly";
             return true;
         }
 
+        // 2. Critical system binary directories (System32, SysWOW64, WinSxS, Defender, Remvora) are ALWAYS protected
+        foreach (var prefix in _criticalSystemPrefixes)
+        {
+            if (canonical.Equals(prefix, StringComparison.OrdinalIgnoreCase)
+                || canonical.StartsWith(prefix + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                reason = $"Target resides within critical protected location: {prefix}";
+                return true;
+            }
+        }
+
+        // 3. Approved cleanup roots (%TEMP%, Windows\Temp, SoftwareDistribution\Download, WER, CrashDumps) are allowed
+        foreach (var approved in _approvedCleanupRoots)
+        {
+            if (canonical.Equals(approved, StringComparison.OrdinalIgnoreCase)
+                || canonical.StartsWith(approved + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        // 4. Other protected prefixes (e.g. general Windows OS root, etc.)
         foreach (var prefix in _protectedPathPrefixes)
         {
             if (canonical.Equals(prefix, StringComparison.OrdinalIgnoreCase)

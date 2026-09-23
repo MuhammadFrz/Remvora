@@ -22,7 +22,8 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
     private static readonly string[] ProtectedAppFolderNames =
     [
         "Microsoft", "Windows", "Common Files", "Internet Explorer", "Packages",
-        "WindowsApps", "SystemApps", "Remvora", "dotnet", "Git", "NVIDIA", "Intel", "AMD"
+        "WindowsApps", "SystemApps", "Remvora", "dotnet", "Git", "NVIDIA", "Intel", "AMD",
+        "USOShared", "USOSShared", "Package Cache", "Microsoft Help", "Crypto"
     ];
 
     public WindowsSystemScanService(
@@ -187,19 +188,28 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
                     {
                         bool shouldDeleteFolderItself = item.Category == ScanCategory.OrphanedLeftovers;
                         var (subRemoved, subBytes) = CleanDirectoryContents(item.TargetPath, shouldDeleteFolderItself, _protectedPathsPolicy);
-                        if (subRemoved > 0 || subBytes > 0)
+                        removed += subRemoved;
+                        reclaimedBytes += subBytes;
+
+                        if (shouldDeleteFolderItself)
                         {
-                            removed += subRemoved;
-                            reclaimedBytes += subBytes;
-                        }
-                        else if (shouldDeleteFolderItself)
-                        {
-                            try
+                            if (Directory.Exists(item.TargetPath))
                             {
-                                Directory.Delete(item.TargetPath, recursive: true);
+                                try
+                                {
+                                    if ((File.GetAttributes(item.TargetPath) & (FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System)) != 0)
+                                    {
+                                        File.SetAttributes(item.TargetPath, FileAttributes.Normal);
+                                    }
+                                    Directory.Delete(item.TargetPath, recursive: true);
+                                }
+                                catch { }
+                            }
+
+                            if (!Directory.Exists(item.TargetPath) && subRemoved == 0)
+                            {
                                 removed++;
                             }
-                            catch { }
                         }
                     }
                 }
@@ -605,7 +615,7 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
                 try
                 {
                     long len = file.Length;
-                    if ((file.Attributes & FileAttributes.ReadOnly) != 0)
+                    if ((file.Attributes & (FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System)) != 0)
                     {
                         file.Attributes = FileAttributes.Normal;
                     }
@@ -620,16 +630,31 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
                 }
             }
 
-            // 2. Clean empty child directories
+            // 2. Clean empty child directories bottom-up (deepest first)
             try
             {
-                foreach (var sub in dirInfo.EnumerateDirectories("*", options))
+                var subDirs = dirInfo.EnumerateDirectories("*", options)
+                                     .OrderByDescending(d => d.FullName.Length)
+                                     .ToList();
+
+                foreach (var sub in subDirs)
                 {
                     try
                     {
-                        if (sub.Exists && !sub.EnumerateFileSystemInfos().Any())
+                        if (protectedPathsPolicy.IsPathProtected(sub.FullName, out _))
+                            continue;
+
+                        if (sub.Exists)
                         {
-                            sub.Delete(false);
+                            if ((sub.Attributes & (FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System)) != 0)
+                            {
+                                sub.Attributes = FileAttributes.Normal;
+                            }
+
+                            if (!sub.EnumerateFileSystemInfos().Any())
+                            {
+                                sub.Delete(false);
+                            }
                         }
                     }
                     catch { }
@@ -642,12 +667,30 @@ public sealed partial class WindowsSystemScanService : ISystemScanService
             {
                 try
                 {
-                    if (!dirInfo.EnumerateFileSystemInfos().Any())
+                    if (dirInfo.Exists)
                     {
-                        dirInfo.Delete(false);
+                        if ((dirInfo.Attributes & (FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System)) != 0)
+                        {
+                            dirInfo.Attributes = FileAttributes.Normal;
+                        }
+
+                        if (!dirInfo.EnumerateFileSystemInfos().Any())
+                        {
+                            dirInfo.Delete(false);
+                        }
                     }
                 }
                 catch { }
+
+                // Fallback attempt: if empty check had transient lock, try recursive delete
+                if (Directory.Exists(folderPath) && !protectedPathsPolicy.IsPathProtected(folderPath, out _))
+                {
+                    try
+                    {
+                        Directory.Delete(folderPath, recursive: true);
+                    }
+                    catch { }
+                }
             }
         }
         catch { }

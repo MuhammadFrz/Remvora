@@ -35,6 +35,14 @@
 - **Emerald Status Badge**: Circular glowing badge (`#10382B` with emerald `#34D399` icon) providing clear, confidence-inspiring feedback.
 - **Symmetrical Metric Tiles**: Clean dark tiles (`#1F2330`) highlighting total items cleaned and exact storage space reclaimed in `#34D399` and `#38BDF8`.
 
+### 🛡️ Deletion Engine & Whitelist Fixes (Rule 2)
+- **Approved Cleanup Whitelist**: Fixed an overly broad prefix policy check where `C:\Windows\Temp`, `SoftwareDistribution\Download`, and `WER` queues were erroneously skipped as protected. System clutter can now be deleted completely.
+- **Bottom-Up Directory Purging**: Fixed folder deletion in orphaned app leftovers by enumerating subdirectories bottom-up (deepest paths first) and stripping `ReadOnly`/`Hidden` attributes, ensuring residual folders are erased cleanly.
+- **Protected Service Isolation**: Filtered core internal Windows service folders (`USOSShared`, `Package Cache`, etc.) in `ProgramData` so active system components are not misidentified as orphaned applications.
+
+### 🔄 Animated Rotating Chevrons
+- **Fluent Expand/Collapse Transitions**: Category group chevron buttons now smoothly rotate 180° when expanded and rotate back to 0° when collapsed using Windows 11 cubic-ease motion curves.
+
 ### 🛠️ Settings Expander Responsive Layout Fix
 - **Eliminated Header Clipping**: Removed hardcoded `Width="700"` from the GitHub Private Repository & Token Configuration expander header.
 - **Responsive Flex Layout**: Text block now employs `TextTrimming="CharacterEllipsis"` and concise status badges (`"Configured"`, `"Active (Env)"`, `"Active (Local .env)"`, `"Public Access"`), preventing badge collision with the expander dropdown chevron.
